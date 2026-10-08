@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>先生向け時間割・クラス管理アプリ</title>
 
+  <!-- PWA（スマホでフルスクリーンアプリ化する設定） -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="先生時間割">
+  <meta name="theme-color" content="#2563eb">
+
   <style>
     * {
       box-sizing: border-box;
@@ -59,6 +65,7 @@
       border-bottom: 1px solid #f1f5f9;
     }
 
+    /* アプリメイン領域 */
     .app-body {
       flex: 1;
       overflow-y: auto;
@@ -75,6 +82,7 @@
       display: block;
     }
 
+    /* ヘッダーナビゲーション */
     .header-nav {
       display: flex;
       justify-content: space-between;
@@ -89,6 +97,7 @@
       color: #0f172a;
     }
 
+    /* 分かりやすいボタンデザイン */
     .action-btn {
       background: #2563eb;
       color: white;
@@ -131,6 +140,7 @@
       font-weight: bold;
     }
 
+    /* バナー */
     .teacher-banner {
       background: linear-gradient(135deg, #2563eb, #1d4ed8);
       border-radius: 20px;
@@ -151,6 +161,7 @@
       opacity: 0.9;
     }
 
+    /* セクション */
     .section-header {
       display: flex;
       justify-content: space-between;
@@ -164,6 +175,7 @@
       color: #1e293b;
     }
 
+    /* カード要素 */
     .class-card {
       background: #ffffff;
       border-radius: 16px;
@@ -174,6 +186,11 @@
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
       border: 1.5px solid transparent;
       position: relative;
+    }
+
+    .class-card:active {
+      border-color: #2563eb;
+      background: #f8fafc;
     }
 
     .period-tag {
@@ -211,6 +228,7 @@
       border: 1px solid #bfdbfe;
     }
 
+    /* フィルタータブ */
     .filter-tabs {
       display: flex;
       gap: 6px;
@@ -234,6 +252,7 @@
       color: white;
     }
 
+    /* クラスグリッド */
     .class-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -248,11 +267,18 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.04);
       cursor: pointer;
       border: 2px solid transparent;
+      position: relative;
+    }
+
+    .class-box:active {
+      border-color: #2563eb;
+      background: #eff6ff;
     }
 
     .class-box-name { font-size: 15px; font-weight: 800; color: #1e293b; }
     .class-box-count { font-size: 11px; color: #64748b; margin-top: 4px; }
 
+    /* 生徒名簿 */
     .student-list {
       background: white;
       border-radius: 16px;
@@ -271,12 +297,14 @@
     .student-num { color: #94a3b8; width: 28px; font-weight: 600; }
     .student-name { flex: 1; font-weight: 700; color: #1e293b; }
 
+    /* フォーム */
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 4px; }
     .form-group input, .form-group select, .form-group textarea {
       width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; background: white;
     }
 
+    /* モーダルダイアログ */
     .modal-overlay {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -312,6 +340,7 @@
       margin-top: 16px;
     }
 
+    /* ボトムナビゲーション */
     .bottom-nav {
       height: 60px;
       background: #ffffff;
@@ -330,7 +359,7 @@
       color: #94a3b8;
       font-weight: 700;
       cursor: pointer;
-      width: 25%;
+      width: 20%;
       border: none;
       background: none;
     }
@@ -346,17 +375,17 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.03);
     }
   </style>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
   <div class="phone-container">
+    <!-- ステータスバー -->
     <div class="status-bar">
-      <span>先生用管理画面</span>
+      <span>10:24</span>
       <span>📶 5G 🔋</span>
     </div>
 
+    <!-- アプリ本文 -->
     <div class="app-body">
       
       <!-- 1. ホーム（時間割）画面 -->
@@ -364,21 +393,40 @@
         <div class="teacher-banner">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div class="banner-sub" id="banner-school">○○中学校</div>
-            <button class="action-btn action-btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="switchTab('settings')">⚙️ 設定</button>
+            <button class="action-btn action-btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="switchTab('settings')">⚙️ プロフィール編集</button>
           </div>
           <div class="greeting-name" id="banner-teacher">田中 先生</div>
-          <div class="banner-sub">担当: <span id="banner-subject">数学</span></div>
+          <div class="banner-sub">2026年10月8日 (木) ｜ 担当: <span id="banner-subject">数学</span></div>
         </div>
 
         <div class="section-header">
-          <div class="section-title">📋 登録済みの授業</div>
+          <div class="section-title">📋 今日の授業</div>
           <button class="action-btn" onclick="openClassModal()">＋ 授業を追加</button>
         </div>
 
-        <div id="today-classes">読み込み中...</div>
+        <div id="today-classes"></div>
       </div>
 
-      <!-- 2. クラス管理画面 -->
+      <!-- 2. 時間割管理画面 -->
+      <div id="tab-timetable" class="tab-content">
+        <div class="header-nav">
+          <button class="icon-btn" onclick="switchTab('home')">＜ 戻る</button>
+          <div class="header-title">時間割の一覧・編集</div>
+          <button class="action-btn" onclick="openClassModal()">＋ 追加</button>
+        </div>
+
+        <div class="filter-tabs">
+          <button class="filter-btn" onclick="filterDay('月', this)">月</button>
+          <button class="filter-btn" onclick="filterDay('火', this)">火</button>
+          <button class="filter-btn" onclick="filterDay('水', this)">水</button>
+          <button class="filter-btn active" onclick="filterDay('木', this)">木</button>
+          <button class="filter-btn" onclick="filterDay('金', this)">金</button>
+        </div>
+
+        <div id="timetable-list"></div>
+      </div>
+
+      <!-- 3. クラス管理画面 -->
       <div id="tab-classes" class="tab-content">
         <div class="header-nav">
           <button class="icon-btn" onclick="switchTab('home')">＜ 戻る</button>
@@ -396,18 +444,18 @@
         <div class="class-grid" id="class-grid-container"></div>
       </div>
 
-      <!-- 3. 生徒名簿画面 -->
+      <!-- 4. 生徒名簿画面 -->
       <div id="tab-students" class="tab-content">
         <div class="header-nav">
           <button class="icon-btn" onclick="switchTab('classes')">＜ クラス一覧</button>
-          <div class="header-title" id="student-class-title">名簿</div>
+          <div class="header-title" id="student-class-title">1年3組</div>
           <button class="action-btn" onclick="openAddStudentModal()">＋ 生徒追加</button>
         </div>
 
         <div class="student-list" id="student-list-container"></div>
       </div>
 
-      <!-- 4. 連絡作成画面 -->
+      <!-- 5. 連絡作成画面 -->
       <div id="tab-notice" class="tab-content">
         <div class="header-nav">
           <button class="icon-btn" onclick="switchTab('home')">＜ 戻る</button>
@@ -431,7 +479,7 @@
         </div>
       </div>
 
-      <!-- 5. 設定画面 -->
+      <!-- 6. 設定画面 -->
       <div id="tab-settings" class="tab-content">
         <div class="header-nav">
           <button class="icon-btn" onclick="switchTab('home')">＜ 戻る</button>
@@ -455,7 +503,10 @@
           </div>
           <button class="action-btn" style="width:100%; justify-content:center; padding:10px;" onclick="saveSettings()">💾 プロフィールを保存</button>
         </div>
-        <a href="index.html" style="display:block; text-align:center; color:#2563eb; font-weight:bold; margin-top:15px; text-decoration:none;">➔ 生徒用時間割を見る</a>
+
+        <div class="setting-card" style="cursor:pointer;" onclick="resetAllData()">
+          <span style="color:#ef4444; font-weight:bold;">🔄 データを初期化する</span>
+        </div>
       </div>
 
     </div>
@@ -468,16 +519,6 @@
           <button class="action-btn action-btn-secondary" onclick="closeModal('modal-class')">✕</button>
         </div>
         <div class="form-group">
-          <label>曜日</label>
-          <select id="edit-day">
-            <option value="月">月曜日</option>
-            <option value="火">火曜日</option>
-            <option value="水">水曜日</option>
-            <option value="木" selected>木曜日</option>
-            <option value="金">金曜日</option>
-          </select>
-        </div>
-        <div class="form-group">
           <label>限数</label>
           <select id="edit-period">
             <option value="1">1限</option>
@@ -485,7 +526,6 @@
             <option value="3">3限</option>
             <option value="4">4限</option>
             <option value="5">5限</option>
-            <option value="6">6限</option>
           </select>
         </div>
         <div class="form-group">
@@ -493,8 +533,16 @@
           <input type="text" id="edit-target" placeholder="例: 1年3組">
         </div>
         <div class="form-group">
-          <label>教科名</label>
+          <label>教科</label>
           <input type="text" id="edit-subject" placeholder="例: 数学">
+        </div>
+        <div class="form-group">
+          <label>時間</label>
+          <input type="text" id="edit-time" placeholder="例: 8:40 〜 9:30">
+        </div>
+        <div class="form-group">
+          <label>教室</label>
+          <input type="text" id="edit-room" placeholder="例: 201教室">
         </div>
         <div class="modal-btns">
           <button class="action-btn action-btn-danger" id="btn-delete-class" onclick="deleteClass()">削除</button>
@@ -532,7 +580,7 @@
     <div class="modal-overlay" id="modal-student">
       <div class="modal-card">
         <div class="modal-header">
-          <span id="modal-student-title">生徒の追加</span>
+          <span id="modal-student-title">生徒の追加・編集</span>
           <button class="action-btn action-btn-secondary" onclick="closeModal('modal-student')">✕</button>
         </div>
         <div class="form-group">
@@ -540,7 +588,8 @@
           <input type="text" id="student-name-input" placeholder="例: 山田 太郎">
         </div>
         <div class="modal-btns">
-          <button class="action-btn" style="width:100%; justify-content:center;" onclick="saveStudent()">保存</button>
+          <button class="action-btn action-btn-danger" id="btn-delete-student" onclick="deleteStudent()">削除</button>
+          <button class="action-btn" style="flex:1; justify-content:center;" onclick="saveStudent()">保存</button>
         </div>
       </div>
     </div>
@@ -567,23 +616,38 @@
   </div>
 
   <script>
-    // Supabase 設定
-    const SUPABASE_URL = 'https://wjabyemjrvmdwonwknmy.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_KBVBabyCyp1GrKIg3ELRYw_WcER...'; // ご自身のKey
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let appData = {
-      profile: { name: "田中 先生", school: "第一中学校", subject: "数学" },
+    // --- 初期データ構造 ---
+    const defaultData = {
+      profile: {
+        name: "田中 先生",
+        school: "第一中学校",
+        subject: "数学"
+      },
       classes: [
-        { id: '1', grade: '1', name: '1年3組', students: ["田中 翔太", "佐藤 葵"] },
-        { id: '2', grade: '2', name: '2年2組', students: ["渡辺 拓海", "中村 海斗"] }
+        { id: '1-3', grade: '1', name: '1年3組', students: ["田中 翔太", "佐藤 葵", "鈴木 太陽", "高橋 健斗", "井上 結衣"] },
+        { id: '2-2', grade: '2', name: '2年2組', students: ["渡辺 拓海", "中村 海斗", "小林 さくら"] },
+        { id: '3-2', grade: '3', name: '3年2組', students: ["加藤 蓮", "吉田 葵"] }
       ],
-      timetable: []
+      timetable: [
+        { id: 1, period: 1, target: '1年3組', subject: '数学', time: '8:40 〜 9:30', room: '201教室', pClass: 'p-1' },
+        { id: 2, period: 2, target: '2年2組', subject: '数学', time: '9:40 〜 10:30', room: '204教室', pClass: 'p-2' },
+        { id: 3, period: 3, target: '3年2組', subject: '情報', time: '10:40 〜 11:30', room: 'PC室', pClass: 'p-3' },
+        { id: 4, period: 4, target: '1年2組', subject: '数学', time: '11:40 〜 12:30', room: '202教室', pClass: 'p-4' }
+      ]
     };
 
+    // localStorage からデータ読み込み
+    let appData = JSON.parse(localStorage.getItem('teacher_app_data')) || defaultData;
     let currentEditClassId = null;
     let selectedClassIndex = null;
+    let selectedStudentIndex = null;
 
+    function saveData() {
+      localStorage.setItem('teacher_app_data', JSON.stringify(appData));
+      renderAll();
+    }
+
+    // --- タブ切り替え ---
     function switchTab(tabName, btnEl) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.getElementById(`tab-${tabName}`).classList.add('active');
@@ -594,16 +658,9 @@
       }
     }
 
-    async function loadData() {
-      // Supabaseから時間割データを取得
-      const { data: classes, error } = await supabase.from('classes').select('*').order('period');
-      if (!error && classes) {
-        appData.timetable = classes;
-      }
-      renderAll();
-    }
-
+    // --- 全体描画関数 ---
     function renderAll() {
+      // プロフィール反映
       document.getElementById('banner-teacher').innerText = appData.profile.name;
       document.getElementById('banner-school').innerText = appData.profile.school;
       document.getElementById('banner-subject').innerText = appData.profile.subject;
@@ -614,25 +671,31 @@
 
       // 授業リスト描画
       const homeClasses = document.getElementById('today-classes');
-      let classHtml = '';
+      const fullClasses = document.getElementById('timetable-list');
       
-      appData.timetable.forEach(item => {
+      let classHtml = '';
+      appData.timetable.sort((a,b) => a.period - b.period).forEach(item => {
         classHtml += `
           <div class="class-card" onclick="openClassModal(${item.id})">
-            <div class="period-tag p-${(item.period % 5) + 1}">${item.day}${item.period}限</div>
+            <div class="period-tag ${item.pClass || 'p-1'}">${item.period}限</div>
             <div class="class-details">
               <div>
-                <span class="class-target">${item.title}</span>
+                <span class="class-target">${item.target}</span>
+                <span class="class-subject">${item.subject}</span>
               </div>
+              <div class="class-time">${item.time} ｜ ${item.room}</div>
             </div>
             <span class="edit-badge">⚙️ 編集</span>
           </div>
         `;
       });
       homeClasses.innerHTML = classHtml || '<p style="text-align:center; color:#94a3b8; padding:20px;">授業が登録されていません</p>';
+      fullClasses.innerHTML = classHtml || '<p style="text-align:center; color:#94a3b8; padding:20px;">授業が登録されていません</p>';
 
+      // クラスグリッド描画
       renderClassGrid();
 
+      // 連絡宛先セレクトボックス設定
       const select = document.getElementById('notice-target-select');
       select.innerHTML = '<option value="学年全体">学年全体</option>';
       appData.classes.forEach(c => {
@@ -640,48 +703,58 @@
       });
     }
 
+    // --- 授業モディファイ（追加・編集・削除） ---
     function openClassModal(id = null) {
       currentEditClassId = id;
       if (id) {
         const item = appData.timetable.find(t => t.id === id);
         document.getElementById('modal-class-title').innerText = "授業の編集";
-        document.getElementById('edit-day').value = item.day || '木';
         document.getElementById('edit-period').value = item.period;
-        document.getElementById('edit-subject').value = item.title;
+        document.getElementById('edit-target').value = item.target;
+        document.getElementById('edit-subject').value = item.subject;
+        document.getElementById('edit-time').value = item.time;
+        document.getElementById('edit-room').value = item.room;
         document.getElementById('btn-delete-class').style.display = "block";
       } else {
         document.getElementById('modal-class-title').innerText = "授業の追加";
-        document.getElementById('edit-day').value = "木";
         document.getElementById('edit-period').value = "1";
-        document.getElementById('edit-subject').value = "";
+        document.getElementById('edit-target').value = "";
+        document.getElementById('edit-subject').value = appData.profile.subject;
+        document.getElementById('edit-time').value = "8:40 〜 9:30";
+        document.getElementById('edit-room').value = "201教室";
         document.getElementById('btn-delete-class').style.display = "none";
       }
       document.getElementById('modal-class').style.display = "flex";
     }
 
-    async function saveClass() {
-      const day = document.getElementById('edit-day').value;
+    function saveClass() {
       const period = parseInt(document.getElementById('edit-period').value);
-      const title = document.getElementById('edit-subject').value || "数学";
+      const target = document.getElementById('edit-target').value || "1年3組";
+      const subject = document.getElementById('edit-subject').value || "数学";
+      const time = document.getElementById('edit-time').value || "8:40 〜 9:30";
+      const room = document.getElementById('edit-room').value || "教室";
+      const pClass = `p-${(period % 5) + 1}`;
 
       if (currentEditClassId) {
-        await supabase.from('classes').update({ day, period, title }).eq('id', currentEditClassId);
+        const idx = appData.timetable.findIndex(t => t.id === currentEditClassId);
+        appData.timetable[idx] = { id: currentEditClassId, period, target, subject, time, room, pClass };
       } else {
-        await supabase.from('classes').insert([{ day, period, title }]);
+        appData.timetable.push({ id: Date.now(), period, target, subject, time, room, pClass });
       }
 
+      saveData();
       closeModal('modal-class');
-      loadData();
     }
 
-    async function deleteClass() {
+    function deleteClass() {
       if (confirm('この授業を削除しますか？')) {
-        await supabase.from('classes').delete().eq('id', currentEditClassId);
+        appData.timetable = appData.timetable.filter(t => t.id !== currentEditClassId);
+        saveData();
         closeModal('modal-class');
-        loadData();
       }
     }
 
+    // --- クラス＆生徒の編集・追加 ---
     function renderClassGrid(gradeFilter = 'all') {
       const container = document.getElementById('class-grid-container');
       container.innerHTML = '';
@@ -708,7 +781,7 @@
       const grade = document.getElementById('new-class-grade').value;
       const name = document.getElementById('new-class-name').value || `${grade}年新規組`;
       appData.classes.push({ id: Date.now().toString(), grade, name, students: [] });
-      renderAll();
+      saveData();
       closeModal('modal-add-class');
     }
 
@@ -723,9 +796,11 @@
       targetClass.students.forEach((sName, sIdx) => {
         const item = document.createElement('div');
         item.className = 'student-item';
+        item.onclick = () => openStudentModal(sIdx);
         item.innerHTML = `
           <span class="student-num">${sIdx + 1}</span>
           <span class="student-name">${sName}</span>
+          <span class="edit-badge">編集</span>
         `;
         container.appendChild(item);
       });
@@ -738,25 +813,64 @@
     }
 
     function openAddStudentModal() {
-      document.getElementById('student-name-input').value = "";
+      openStudentModal(null);
+    }
+
+    function openStudentModal(sIdx = null) {
+      selectedStudentIndex = sIdx;
+      if (sIdx !== null) {
+        document.getElementById('modal-student-title').innerText = "生徒名の編集";
+        document.getElementById('student-name-input').value = appData.classes[selectedClassIndex].students[sIdx];
+        document.getElementById('btn-delete-student').style.display = "block";
+      } else {
+        document.getElementById('modal-student-title').innerText = "生徒の追加";
+        document.getElementById('student-name-input').value = "";
+        document.getElementById('btn-delete-student').style.display = "none";
+      }
       document.getElementById('modal-student').style.display = "flex";
     }
 
     function saveStudent() {
       const name = document.getElementById('student-name-input').value;
       if (!name) return;
-      appData.classes[selectedClassIndex].students.push(name);
+
+      if (selectedStudentIndex !== null) {
+        appData.classes[selectedClassIndex].students[selectedStudentIndex] = name;
+      } else {
+        appData.classes[selectedClassIndex].students.push(name);
+      }
+
+      saveData();
       openStudentList(selectedClassIndex);
       closeModal('modal-student');
     }
 
+    function deleteStudent() {
+      if (confirm('この生徒を削除しますか？')) {
+        appData.classes[selectedClassIndex].students.splice(selectedStudentIndex, 1);
+        saveData();
+        openStudentList(selectedClassIndex);
+        closeModal('modal-student');
+      }
+    }
+
+    // --- 設定＆その他の機能 ---
     function saveSettings() {
       appData.profile.name = document.getElementById('setting-name').value;
       appData.profile.school = document.getElementById('setting-school').value;
       appData.profile.subject = document.getElementById('setting-subject').value;
-      renderAll();
+      saveData();
       alert('プロフィールを保存しました！');
       switchTab('home');
+    }
+
+    function resetAllData() {
+      if (confirm('初期データに戻しますか？（変更内容は消去されます）')) {
+        localStorage.removeItem('teacher_app_data');
+        appData = JSON.parse(JSON.stringify(defaultData));
+        saveData();
+        alert('初期化されました');
+      }
     }
 
     function sendNotice() {
@@ -777,11 +891,17 @@
       renderClassGrid(grade);
     }
 
+    function filterDay(day, btn) {
+      btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
     function closeModal(id) {
       document.getElementById(id).style.display = "none";
     }
 
-    window.onload = loadData;
+    // 初期起動
+    renderAll();
   </script>
 </body>
 </html>
