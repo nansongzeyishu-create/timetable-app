@@ -11,6 +11,9 @@
   <meta name="apple-mobile-web-app-title" content="先生時間割">
   <meta name="theme-color" content="#2563eb">
 
+  <!-- Lucide Icons (スマートな線画アイコンライブラリ) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
   <style>
     * {
       box-sizing: border-box;
@@ -53,6 +56,27 @@
       }
     }
 
+    /* SVG線画アイコン共通スタイル */
+    .icon-line {
+      width: 18px;
+      height: 18px;
+      stroke-width: 1.8px;
+      vertical-align: middle;
+      display: inline-block;
+    }
+
+    .icon-line-sm {
+      width: 14px;
+      height: 14px;
+      stroke-width: 1.8px;
+    }
+
+    .icon-line-lg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 1.8px;
+    }
+
     /* アプリメイン領域 */
     .app-body {
       flex: 1;
@@ -84,6 +108,9 @@
       font-size: 17px;
       font-weight: 800;
       color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     /* ボタンデザイン */
@@ -119,7 +146,7 @@
     }
 
     .icon-btn {
-      font-size: 14px;
+      font-size: 12px;
       cursor: pointer;
       color: #2563eb;
       padding: 6px 10px;
@@ -127,6 +154,9 @@
       border: none;
       background: #eff6ff;
       font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     /* バナー */
@@ -162,6 +192,9 @@
       font-size: 15px;
       font-weight: 800;
       color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     /* 週間時間割テーブル */
@@ -217,6 +250,7 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
+      align-items: center;
       cursor: pointer;
       transition: all 0.1s;
     }
@@ -296,6 +330,9 @@
       padding: 4px 8px;
       border-radius: 8px;
       border: 1px solid #bfdbfe;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
     }
 
     /* フィルタータブ */
@@ -372,7 +409,7 @@
 
     /* フォーム */
     .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 4px; }
+    .form-group label { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 4px; }
     .form-group input, .form-group select, .form-group textarea {
       width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 14px; background: white;
     }
@@ -439,7 +476,7 @@
     }
 
     .nav-item.active { color: #2563eb; }
-    .nav-icon { font-size: 20px; }
+    .nav-icon { display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
 
     .setting-card {
       background: white;
@@ -462,15 +499,21 @@
         <div class="teacher-banner">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div class="banner-sub" id="banner-school">第一中学校</div>
-            <button class="action-btn action-btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="switchTab('settings')">⚙️ 設定</button>
+            <button class="action-btn action-btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="switchTab('settings')">
+              <i data-lucide="settings" class="icon-line-sm"></i> 設定
+            </button>
           </div>
           <div class="greeting-name" id="banner-teacher">田中 先生</div>
           <div class="banner-sub">担当教科: <span id="banner-subject">数学</span></div>
         </div>
 
         <div class="section-header">
-          <div class="section-title">📅 週間時間割（月〜金）</div>
-          <button class="action-btn" onclick="openClassModal()">＋ 授業登録</button>
+          <div class="section-title">
+            <i data-lucide="calendar-days" class="icon-line" style="color:#2563eb;"></i> 週間時間割（月〜金）
+          </div>
+          <button class="action-btn" onclick="openClassModal()">
+            <i data-lucide="plus" class="icon-line-sm"></i> 授業登録
+          </button>
         </div>
 
         <!-- 週間時間割表 -->
@@ -493,7 +536,9 @@
         </div>
 
         <div class="section-header">
-          <div class="section-title" id="day-list-title">📋 木曜日の授業一覧</div>
+          <div class="section-title" id="day-list-title">
+            <i data-lucide="list-checks" class="icon-line" style="color:#2563eb;"></i> 木曜日の授業一覧
+          </div>
         </div>
 
         <div id="day-classes-list"></div>
@@ -502,9 +547,13 @@
       <!-- 2. クラス管理画面 -->
       <div id="tab-classes" class="tab-content">
         <div class="header-nav">
-          <button class="icon-btn" onclick="switchTab('home')">＜ ホーム</button>
+          <button class="icon-btn" onclick="switchTab('home')">
+            <i data-lucide="chevron-left" class="icon-line-sm"></i> ホーム
+          </button>
           <div class="header-title">クラス管理 (全15クラス)</div>
-          <button class="action-btn" onclick="openAddClassModal()">＋ 追加</button>
+          <button class="action-btn" onclick="openAddClassModal()">
+            <i data-lucide="plus" class="icon-line-sm"></i> 追加
+          </button>
         </div>
 
         <div class="filter-tabs">
@@ -520,9 +569,13 @@
       <!-- 3. 生徒名簿画面 -->
       <div id="tab-students" class="tab-content">
         <div class="header-nav">
-          <button class="icon-btn" onclick="switchTab('classes')">＜ クラス一覧</button>
+          <button class="icon-btn" onclick="switchTab('classes')">
+            <i data-lucide="chevron-left" class="icon-line-sm"></i> クラス一覧
+          </button>
           <div class="header-title" id="student-class-title">1年1組</div>
-          <button class="action-btn" onclick="openAddStudentModal()">＋ 生徒追加</button>
+          <button class="action-btn" onclick="openAddStudentModal()">
+            <i data-lucide="user-plus" class="icon-line-sm"></i> 生徒追加
+          </button>
         </div>
 
         <div class="student-list" id="student-list-container"></div>
@@ -531,7 +584,9 @@
       <!-- 4. 連絡作成画面 -->
       <div id="tab-notice" class="tab-content">
         <div class="header-nav">
-          <button class="icon-btn" onclick="switchTab('home')">＜ ホーム</button>
+          <button class="icon-btn" onclick="switchTab('home')">
+            <i data-lucide="chevron-left" class="icon-line-sm"></i> ホーム
+          </button>
           <div class="header-title">新しい連絡を作成</div>
           <span></span>
         </div>
@@ -548,20 +603,26 @@
             <label>本文</label>
             <textarea id="notice-body" rows="4" placeholder="連絡内容を入力してください"></textarea>
           </div>
-          <button class="action-btn" style="width:100%; justify-content:center; padding:12px; font-size:14px;" onclick="sendNotice()">📢 連絡を送信する</button>
+          <button class="action-btn" style="width:100%; justify-content:center; padding:12px; font-size:14px;" onclick="sendNotice()">
+            <i data-lucide="send" class="icon-line"></i> 連絡を送信する
+          </button>
         </div>
       </div>
 
       <!-- 5. 設定画面 -->
       <div id="tab-settings" class="tab-content">
         <div class="header-nav">
-          <button class="icon-btn" onclick="switchTab('home')">＜ ホーム</button>
+          <button class="icon-btn" onclick="switchTab('home')">
+            <i data-lucide="chevron-left" class="icon-line-sm"></i> ホーム
+          </button>
           <div class="header-title">設定・プロフィール</div>
           <span></span>
         </div>
 
         <div class="setting-card">
-          <div style="font-weight:800; font-size:15px; margin-bottom:12px;">👤 先生プロフィール編集</div>
+          <div style="font-weight:800; font-size:15px; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+            <i data-lucide="user-cog" class="icon-line" style="color:#2563eb;"></i> 先生プロフィール編集
+          </div>
           <div class="form-group">
             <label>お名前</label>
             <input type="text" id="setting-name">
@@ -574,11 +635,15 @@
             <label>担当教科</label>
             <input type="text" id="setting-subject">
           </div>
-          <button class="action-btn" style="width:100%; justify-content:center; padding:10px;" onclick="saveSettings()">💾 プロフィールを保存</button>
+          <button class="action-btn" style="width:100%; justify-content:center; padding:10px;" onclick="saveSettings()">
+            <i data-lucide="save" class="icon-line-sm"></i> プロフィールを保存
+          </button>
         </div>
 
         <div class="setting-card" style="cursor:pointer;" onclick="resetAllData()">
-          <span style="color:#ef4444; font-weight:bold;">🔄 データを初期状態に戻す</span>
+          <span style="color:#ef4444; font-weight:bold; display:flex; align-items:center; gap:6px;">
+            <i data-lucide="rotate-ccw" class="icon-line" style="color:#ef4444;"></i> データを初期状態に戻す
+          </span>
         </div>
       </div>
 
@@ -589,7 +654,9 @@
       <div class="modal-card">
         <div class="modal-header">
           <span id="modal-class-title">授業の追加・編集</span>
-          <button class="action-btn action-btn-secondary" onclick="closeModal('modal-class')">✕</button>
+          <button class="action-btn action-btn-secondary" onclick="closeModal('modal-class')">
+            <i data-lucide="x" class="icon-line-sm"></i>
+          </button>
         </div>
         <div class="form-group">
           <label>曜日</label>
@@ -636,7 +703,9 @@
       <div class="modal-card">
         <div class="modal-header">
           <span>新しいクラスを追加</span>
-          <button class="action-btn action-btn-secondary" onclick="closeModal('modal-add-class')">✕</button>
+          <button class="action-btn action-btn-secondary" onclick="closeModal('modal-add-class')">
+            <i data-lucide="x" class="icon-line-sm"></i>
+          </button>
         </div>
         <div class="form-group">
           <label>学年</label>
@@ -661,7 +730,9 @@
       <div class="modal-card">
         <div class="modal-header">
           <span id="modal-student-title">生徒の追加・編集</span>
-          <button class="action-btn action-btn-secondary" onclick="closeModal('modal-student')">✕</button>
+          <button class="action-btn action-btn-secondary" onclick="closeModal('modal-student')">
+            <i data-lucide="x" class="icon-line-sm"></i>
+          </button>
         </div>
         <div class="form-group">
           <label>生徒の氏名</label>
@@ -677,19 +748,19 @@
     <!-- ボトムナビゲーション -->
     <div class="bottom-nav">
       <button class="nav-item active" onclick="switchTab('home', this)">
-        <span class="nav-icon">📅</span>
+        <span class="nav-icon"><i data-lucide="calendar" class="icon-line-lg"></i></span>
         <span>時間割</span>
       </button>
       <button class="nav-item" onclick="switchTab('classes', this)">
-        <span class="nav-icon">👥</span>
+        <span class="nav-icon"><i data-lucide="users" class="icon-line-lg"></i></span>
         <span>クラス管理</span>
       </button>
       <button class="nav-item" onclick="switchTab('notice', this)">
-        <span class="nav-icon">📢</span>
+        <span class="nav-icon"><i data-lucide="megaphone" class="icon-line-lg"></i></span>
         <span>連絡作成</span>
       </button>
       <button class="nav-item" onclick="switchTab('settings', this)">
-        <span class="nav-icon">⚙️</span>
+        <span class="nav-icon"><i data-lucide="settings" class="icon-line-lg"></i></span>
         <span>設定</span>
       </button>
     </div>
@@ -776,6 +847,9 @@
       renderDayClassList(selectedDay);
       renderClassGrid();
       updateTargetDropdowns();
+
+      // 動的生成要素内の Lucide アイコンを描画
+      lucide.createIcons();
     }
 
     // 1週間時間割表の生成（月〜金、1〜6限）
@@ -819,7 +893,7 @@
           } else {
             cell.className = 'weekly-cell';
             cell.onclick = () => openClassModalForSlot(d, p);
-            cell.innerHTML = `<span style="color:#cbd5e1;">＋</span>`;
+            cell.innerHTML = `<i data-lucide="plus" class="icon-line-sm" style="color:#cbd5e1;"></i>`;
           }
 
           td.appendChild(cell);
@@ -833,7 +907,9 @@
     // 特定曜日の授業リスト描画
     function renderDayClassList(day) {
       selectedDay = day;
-      document.getElementById('day-list-title').innerText = `📋 ${day}曜日の授業一覧`;
+      document.getElementById('day-list-title').innerHTML = `
+        <i data-lucide="list-checks" class="icon-line" style="color:#2563eb;"></i> ${day}曜日の授業一覧
+      `;
 
       const listContainer = document.getElementById('day-classes-list');
       const dayClasses = appData.timetable
@@ -853,7 +929,9 @@
               </div>
               <div class="class-time">${item.room}</div>
             </div>
-            <span class="edit-badge">⚙️ 編集</span>
+            <span class="edit-badge">
+              <i data-lucide="pencil" class="icon-line-sm"></i> 編集
+            </span>
           </div>
         `;
       });
@@ -978,7 +1056,9 @@
         item.innerHTML = `
           <span class="student-num">${sIdx + 1}</span>
           <span class="student-name">${sName}</span>
-          <span class="edit-badge">編集</span>
+          <span class="edit-badge">
+            <i data-lucide="pencil" class="icon-line-sm"></i> 編集
+          </span>
         `;
         container.appendChild(item);
       });
@@ -988,6 +1068,7 @@
       }
 
       switchTab('students');
+      lucide.createIcons();
     }
 
     function openAddStudentModal() {
