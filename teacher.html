@@ -86,7 +86,7 @@
       color: #0f172a;
     }
 
-    /* 分かりやすいボタンデザイン */
+    /* ボタンデザイン */
     .action-btn {
       background: #2563eb;
       color: white;
@@ -337,6 +337,7 @@
       display: flex;
       justify-content: space-around;
       align-items: center;
+      flex-shrink: 0;
     }
 
     .nav-item {
@@ -372,11 +373,11 @@
     <!-- アプリ本文 -->
     <div class="app-body">
       
-      <!-- 1. ホーム（時間割）画面 -->
+      <!-- ホーム（時間割）画面 -->
       <div id="tab-home" class="tab-content active">
         <div class="teacher-banner">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div class="banner-sub" id="banner-school">○○中学校</div>
+            <div class="banner-sub" id="banner-school">第一中学校</div>
             <button class="action-btn action-btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="switchTab('settings')">⚙️ プロフィール編集</button>
           </div>
           <div class="greeting-name" id="banner-teacher">田中 先生</div>
@@ -391,7 +392,7 @@
         <div id="today-classes"></div>
       </div>
 
-      <!-- 2. 時間割管理画面 -->
+      <!-- 時間割管理画面 -->
       <div id="tab-timetable" class="tab-content">
         <div class="header-nav">
           <button class="icon-btn" onclick="switchTab('home')">＜ 戻る</button>
@@ -402,4 +403,486 @@
         <div class="filter-tabs">
           <button class="filter-btn" onclick="filterDay('月', this)">月</button>
           <button class="filter-btn" onclick="filterDay('火', this)">火</button>
-          <button class="fi
+          <button class="filter-btn" onclick="filterDay('水', this)">水</button>
+          <button class="filter-btn active" onclick="filterDay('木', this)">木</button>
+          <button class="filter-btn" onclick="filterDay('金', this)">金</button>
+        </div>
+
+        <div id="timetable-list"></div>
+      </div>
+
+      <!-- クラス管理画面 -->
+      <div id="tab-classes" class="tab-content">
+        <div class="header-nav">
+          <button class="icon-btn" onclick="switchTab('home')">＜ 戻る</button>
+          <div class="header-title">クラス管理</div>
+          <button class="action-btn" onclick="openAddClassModal()">＋ クラス追加</button>
+        </div>
+
+        <div class="filter-tabs">
+          <button class="filter-btn active" onclick="filterGrade('all', this)">すべて</button>
+          <button class="filter-btn" onclick="filterGrade('1', this)">1年</button>
+          <button class="filter-btn" onclick="filterGrade('2', this)">2年</button>
+          <button class="filter-btn" onclick="filterGrade('3', this)">3年</button>
+        </div>
+
+        <div class="class-grid" id="class-grid-container"></div>
+      </div>
+
+      <!-- 生徒名簿画面 -->
+      <div id="tab-students" class="tab-content">
+        <div class="header-nav">
+          <button class="icon-btn" onclick="switchTab('classes')">＜ クラス一覧</button>
+          <div class="header-title" id="student-class-title">1年3組</div>
+          <button class="action-btn" onclick="openAddStudentModal()">＋ 生徒追加</button>
+        </div>
+
+        <div class="student-list" id="student-list-container"></div>
+      </div>
+
+      <!-- 連絡作成画面 -->
+      <div id="tab-notice" class="tab-content">
+        <div class="header-nav">
+          <button class="icon-btn" onclick="switchTab('home')">＜ 戻る</button>
+          <div class="header-title">新しい連絡を作成</div>
+          <span></span>
+        </div>
+        <div class="setting-card">
+          <div class="form-group">
+            <label>宛先クラス</label>
+            <select id="notice-target-select"></select>
+          </div>
+          <div class="form-group">
+            <label>件名</label>
+            <input type="text" id="notice-title" placeholder="例：明日の持ち物について">
+          </div>
+          <div class="form-group">
+            <label>本文</label>
+            <textarea id="notice-body" rows="4" placeholder="連絡内容を入力してください"></textarea>
+          </div>
+          <button class="action-btn" style="width:100%; justify-content:center; padding:12px; font-size:14px;" onclick="sendNotice()">📢 連絡を送信する</button>
+        </div>
+      </div>
+
+      <!-- 設定画面 -->
+      <div id="tab-settings" class="tab-content">
+        <div class="header-nav">
+          <button class="icon-btn" onclick="switchTab('home')">＜ 戻る</button>
+          <div class="header-title">設定・プロフィール編集</div>
+          <span></span>
+        </div>
+
+        <div class="setting-card">
+          <div style="font-weight:800; font-size:15px; margin-bottom:12px;">👤 先生プロフィール編集</div>
+          <div class="form-group">
+            <label>お名前</label>
+            <input type="text" id="setting-name">
+          </div>
+          <div class="form-group">
+            <label>学校名</label>
+            <input type="text" id="setting-school">
+          </div>
+          <div class="form-group">
+            <label>担当教科</label>
+            <input type="text" id="setting-subject">
+          </div>
+          <button class="action-btn" style="width:100%; justify-content:center; padding:10px;" onclick="saveSettings()">💾 プロフィールを保存</button>
+        </div>
+
+        <div class="setting-card" style="cursor:pointer;" onclick="resetAllData()">
+          <span style="color:#ef4444; font-weight:bold;">🔄 データを初期化する</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 授業編集モーダル -->
+    <div class="modal-overlay" id="modal-class">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span id="modal-class-title">授業の追加・編集</span>
+          <button class="action-btn action-btn-secondary" onclick="closeModal('modal-class')">✕</button>
+        </div>
+        <div class="form-group">
+          <label>限数</label>
+          <select id="edit-period">
+            <option value="1">1限</option>
+            <option value="2">2限</option>
+            <option value="3">3限</option>
+            <option value="4">4限</option>
+            <option value="5">5限</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>対象クラス</label>
+          <input type="text" id="edit-target" placeholder="例: 1年3組">
+        </div>
+        <div class="form-group">
+          <label>教科</label>
+          <input type="text" id="edit-subject" placeholder="例: 数学">
+        </div>
+        <div class="form-group">
+          <label>時間</label>
+          <input type="text" id="edit-time" placeholder="例: 8:40 〜 9:30">
+        </div>
+        <div class="form-group">
+          <label>教室</label>
+          <input type="text" id="edit-room" placeholder="例: 201教室">
+        </div>
+        <div class="modal-btns">
+          <button class="action-btn action-btn-danger" id="btn-delete-class" onclick="deleteClass()">削除</button>
+          <button class="action-btn" style="flex:1; justify-content:center;" onclick="saveClass()">保存する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- クラス追加モーダル -->
+    <div class="modal-overlay" id="modal-add-class">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span>新しいクラスを追加</span>
+          <button class="action-btn action-btn-secondary" onclick="closeModal('modal-add-class')">✕</button>
+        </div>
+        <div class="form-group">
+          <label>学年</label>
+          <select id="new-class-grade">
+            <option value="1">1年</option>
+            <option value="2">2年</option>
+            <option value="3">3年</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>クラス名</label>
+          <input type="text" id="new-class-name" placeholder="例: 1年4組">
+        </div>
+        <div class="modal-btns">
+          <button class="action-btn" style="width:100%; justify-content:center;" onclick="saveNewClass()">追加する</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 生徒追加・編集モーダル -->
+    <div class="modal-overlay" id="modal-student">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span id="modal-student-title">生徒の追加・編集</span>
+          <button class="action-btn action-btn-secondary" onclick="closeModal('modal-student')">✕</button>
+        </div>
+        <div class="form-group">
+          <label>生徒の氏名</label>
+          <input type="text" id="student-name-input" placeholder="例: 山田 太郎">
+        </div>
+        <div class="modal-btns">
+          <button class="action-btn action-btn-danger" id="btn-delete-student" onclick="deleteStudent()">削除</button>
+          <button class="action-btn" style="flex:1; justify-content:center;" onclick="saveStudent()">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ボトムナビゲーション -->
+    <div class="bottom-nav">
+      <button class="nav-item active" onclick="switchTab('home', this)">
+        <span class="nav-icon">🏠</span>
+        <span>時間割</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('classes', this)">
+        <span class="nav-icon">👥</span>
+        <span>クラス管理</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('notice', this)">
+        <span class="nav-icon">📢</span>
+        <span>連絡作成</span>
+      </button>
+      <button class="nav-item" onclick="switchTab('settings', this)">
+        <span class="nav-icon">⚙️</span>
+        <span>設定</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // 初期データ構造
+    const defaultData = {
+      profile: {
+        name: "田中 先生",
+        school: "第一中学校",
+        subject: "数学"
+      },
+      classes: [
+        { id: '1-3', grade: '1', name: '1年3組', students: ["田中 翔太", "佐藤 葵", "鈴木 太陽", "高橋 健斗", "井上 結衣"] },
+        { id: '2-2', grade: '2', name: '2年2組', students: ["渡辺 拓海", "中村 海斗", "小林 さくら"] },
+        { id: '3-2', grade: '3', name: '3年2組', students: ["加藤 蓮", "吉田 葵"] }
+      ],
+      timetable: [
+        { id: 1, period: 1, target: '1年3組', subject: '数学', time: '8:40 〜 9:30', room: '201教室', pClass: 'p-1' },
+        { id: 2, period: 2, target: '2年2組', subject: '数学', time: '9:40 〜 10:30', room: '204教室', pClass: 'p-2' },
+        { id: 3, period: 3, target: '3年2組', subject: '情報', time: '10:40 〜 11:30', room: 'PC室', pClass: 'p-3' },
+        { id: 4, period: 4, target: '1年2組', subject: '数学', time: '11:40 〜 12:30', room: '202教室', pClass: 'p-4' }
+      ]
+    };
+
+    // localStorage からデータ読み込み
+    let appData = JSON.parse(localStorage.getItem('teacher_app_data')) || defaultData;
+    let currentEditClassId = null;
+    let selectedClassIndex = null;
+    let selectedStudentIndex = null;
+
+    function saveData() {
+      localStorage.setItem('teacher_app_data', JSON.stringify(appData));
+      renderAll();
+    }
+
+    // タブ切り替え
+    function switchTab(tabName, btnEl) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+
+      if (btnEl) {
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        btnEl.classList.add('active');
+      }
+    }
+
+    // 全体描画関数
+    function renderAll() {
+      document.getElementById('banner-teacher').innerText = appData.profile.name;
+      document.getElementById('banner-school').innerText = appData.profile.school;
+      document.getElementById('banner-subject').innerText = appData.profile.subject;
+      
+      document.getElementById('setting-name').value = appData.profile.name;
+      document.getElementById('setting-school').value = appData.profile.school;
+      document.getElementById('setting-subject').value = appData.profile.subject;
+
+      const homeClasses = document.getElementById('today-classes');
+      const fullClasses = document.getElementById('timetable-list');
+      
+      let classHtml = '';
+      appData.timetable.sort((a,b) => a.period - b.period).forEach(item => {
+        classHtml += `
+          <div class="class-card" onclick="openClassModal(${item.id})">
+            <div class="period-tag ${item.pClass || 'p-1'}">${item.period}限</div>
+            <div class="class-details">
+              <div>
+                <span class="class-target">${item.target}</span>
+                <span class="class-subject">${item.subject}</span>
+              </div>
+              <div class="class-time">${item.time} ｜ ${item.room}</div>
+            </div>
+            <span class="edit-badge">⚙️ 編集</span>
+          </div>
+        `;
+      });
+      homeClasses.innerHTML = classHtml || '<p style="text-align:center; color:#94a3b8; padding:20px;">授業が登録されていません</p>';
+      fullClasses.innerHTML = classHtml || '<p style="text-align:center; color:#94a3b8; padding:20px;">授業が登録されていません</p>';
+
+      renderClassGrid();
+
+      const select = document.getElementById('notice-target-select');
+      select.innerHTML = '<option value="学年全体">学年全体</option>';
+      appData.classes.forEach(c => {
+        select.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+      });
+    }
+
+    // 授業編集・追加・削除
+    function openClassModal(id = null) {
+      currentEditClassId = id;
+      if (id) {
+        const item = appData.timetable.find(t => t.id === id);
+        document.getElementById('modal-class-title').innerText = "授業の編集";
+        document.getElementById('edit-period').value = item.period;
+        document.getElementById('edit-target').value = item.target;
+        document.getElementById('edit-subject').value = item.subject;
+        document.getElementById('edit-time').value = item.time;
+        document.getElementById('edit-room').value = item.room;
+        document.getElementById('btn-delete-class').style.display = "block";
+      } else {
+        document.getElementById('modal-class-title').innerText = "授業の追加";
+        document.getElementById('edit-period').value = "1";
+        document.getElementById('edit-target').value = "";
+        document.getElementById('edit-subject').value = appData.profile.subject;
+        document.getElementById('edit-time').value = "8:40 〜 9:30";
+        document.getElementById('edit-room').value = "201教室";
+        document.getElementById('btn-delete-class').style.display = "none";
+      }
+      document.getElementById('modal-class').style.display = "flex";
+    }
+
+    function saveClass() {
+      const period = parseInt(document.getElementById('edit-period').value);
+      const target = document.getElementById('edit-target').value || "1年3組";
+      const subject = document.getElementById('edit-subject').value || "数学";
+      const time = document.getElementById('edit-time').value || "8:40 〜 9:30";
+      const room = document.getElementById('edit-room').value || "教室";
+      const pClass = `p-${(period % 5) + 1}`;
+
+      if (currentEditClassId) {
+        const idx = appData.timetable.findIndex(t => t.id === currentEditClassId);
+        appData.timetable[idx] = { id: currentEditClassId, period, target, subject, time, room, pClass };
+      } else {
+        appData.timetable.push({ id: Date.now(), period, target, subject, time, room, pClass });
+      }
+
+      saveData();
+      closeModal('modal-class');
+    }
+
+    function deleteClass() {
+      if (confirm('この授業を削除しますか？')) {
+        appData.timetable = appData.timetable.filter(t => t.id !== currentEditClassId);
+        saveData();
+        closeModal('modal-class');
+      }
+    }
+
+    // クラス＆生徒の編集・追加
+    function renderClassGrid(gradeFilter = 'all') {
+      const container = document.getElementById('class-grid-container');
+      container.innerHTML = '';
+
+      const list = gradeFilter === 'all' ? appData.classes : appData.classes.filter(c => c.grade === gradeFilter);
+      list.forEach((c) => {
+        const box = document.createElement('div');
+        box.className = 'class-box';
+        box.onclick = () => openStudentList(appData.classes.indexOf(c));
+        box.innerHTML = `
+          <div class="class-box-name">${c.name}</div>
+          <div class="class-box-count">生徒数: ${c.students.length}人</div>
+        `;
+        container.appendChild(box);
+      });
+    }
+
+    function openAddClassModal() {
+      document.getElementById('new-class-name').value = '';
+      document.getElementById('modal-add-class').style.display = 'flex';
+    }
+
+    function saveNewClass() {
+      const grade = document.getElementById('new-class-grade').value;
+      const name = document.getElementById('new-class-name').value || `${grade}年新規組`;
+      appData.classes.push({ id: Date.now().toString(), grade, name, students: [] });
+      saveData();
+      closeModal('modal-add-class');
+    }
+
+    function openStudentList(classIdx) {
+      selectedClassIndex = classIdx;
+      const targetClass = appData.classes[classIdx];
+      document.getElementById('student-class-title').innerText = `${targetClass.name} 名簿`;
+
+      const container = document.getElementById('student-list-container');
+      container.innerHTML = '';
+
+      targetClass.students.forEach((sName, sIdx) => {
+        const item = document.createElement('div');
+        item.className = 'student-item';
+        item.onclick = () => openStudentModal(sIdx);
+        item.innerHTML = `
+          <span class="student-num">${sIdx + 1}</span>
+          <span class="student-name">${sName}</span>
+          <span class="edit-badge">編集</span>
+        `;
+        container.appendChild(item);
+      });
+
+      if (targetClass.students.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:20px;">生徒が登録されていません</p>';
+      }
+
+      switchTab('students');
+    }
+
+    function openAddStudentModal() {
+      openStudentModal(null);
+    }
+
+    function openStudentModal(sIdx = null) {
+      selectedStudentIndex = sIdx;
+      if (sIdx !== null) {
+        document.getElementById('modal-student-title').innerText = "生徒名の編集";
+        document.getElementById('student-name-input').value = appData.classes[selectedClassIndex].students[sIdx];
+        document.getElementById('btn-delete-student').style.display = "block";
+      } else {
+        document.getElementById('modal-student-title').innerText = "生徒の追加";
+        document.getElementById('student-name-input').value = "";
+        document.getElementById('btn-delete-student').style.display = "none";
+      }
+      document.getElementById('modal-student').style.display = "flex";
+    }
+
+    function saveStudent() {
+      const name = document.getElementById('student-name-input').value;
+      if (!name) return;
+
+      if (selectedStudentIndex !== null) {
+        appData.classes[selectedClassIndex].students[selectedStudentIndex] = name;
+      } else {
+        appData.classes[selectedClassIndex].students.push(name);
+      }
+
+      saveData();
+      openStudentList(selectedClassIndex);
+      closeModal('modal-student');
+    }
+
+    function deleteStudent() {
+      if (confirm('この生徒を削除しますか？')) {
+        appData.classes[selectedClassIndex].students.splice(selectedStudentIndex, 1);
+        saveData();
+        openStudentList(selectedClassIndex);
+        closeModal('modal-student');
+      }
+    }
+
+    // 設定・プロフィール保存
+    function saveSettings() {
+      appData.profile.name = document.getElementById('setting-name').value;
+      appData.profile.school = document.getElementById('setting-school').value;
+      appData.profile.subject = document.getElementById('setting-subject').value;
+      saveData();
+      alert('プロフィールを保存しました！');
+      switchTab('home');
+    }
+
+    function resetAllData() {
+      if (confirm('初期データに戻しますか？（変更内容は消去されます）')) {
+        localStorage.removeItem('teacher_app_data');
+        appData = JSON.parse(JSON.stringify(defaultData));
+        saveData();
+        alert('初期化されました');
+      }
+    }
+
+    function sendNotice() {
+      const title = document.getElementById('notice-title').value;
+      if (!title) {
+        alert('件名を入力してください');
+        return;
+      }
+      alert('連絡を送信しました！');
+      document.getElementById('notice-title').value = '';
+      document.getElementById('notice-body').value = '';
+      switchTab('home');
+    }
+
+    function filterGrade(grade, btn) {
+      btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderClassGrid(grade);
+    }
+
+    function filterDay(day, btn) {
+      btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+
+    // 初期起動
+    renderAll();
+  </script>
+</body>
+</html>
