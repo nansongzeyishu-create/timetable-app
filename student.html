@@ -75,64 +75,12 @@
       border: 8px solid #1E293B;
     }
 
-    /* ステータスバー */
-    .status-bar {
-      height: 38px;
-      padding: 0 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      font-size: 13px;
-      font-weight: 700;
-      color: #334155;
-      z-index: 10;
-      background: #E6F3FE;
-    }
-
-    .status-icons {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      font-size: 11px;
-    }
-
-    /* 日付シミュレーターバー */
-    .sim-bar {
-      background: #334155;
-      color: #FFF;
-      padding: 6px 12px;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      z-index: 9;
-    }
-
-    .sim-bar input[type="datetime-local"] {
-      background: #475569;
-      border: none;
-      color: #FFF;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 11px;
-    }
-
-    .sim-bar button {
-      background: var(--primary-blue);
-      border: none;
-      color: white;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      cursor: pointer;
-    }
-
     /* アプリコンテンツエリア */
     .app-content {
       flex: 1;
       overflow-y: auto;
       background: var(--bg-gradient);
-      padding: 16px 18px 80px 18px;
+      padding: 24px 18px 80px 18px;
       position: relative;
     }
 
@@ -752,7 +700,7 @@
     .sim-popup {
       display: none;
       position: absolute;
-      top: 40px;
+      top: 16px;
       left: 10px;
       right: 10px;
       background: #1E293B;
@@ -783,22 +731,18 @@
 
     .sim-row input {
       flex: 1;
+      background: #475569;
+      border: none;
+      color: #FFF;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
 
   <div class="phone-container">
-    <!-- ステータスバー -->
-    <div class="status-bar">
-      <span id="status-time">9:41</span>
-      <div class="status-icons">
-        <i class="fa-solid fa-signal"></i>
-        <i class="fa-solid fa-wifi"></i>
-        <i class="fa-solid fa-battery-full"></i>
-      </div>
-    </div>
-
     <!-- 日付シミュレーターポップアップ（日時変更用） -->
     <div class="sim-popup" id="sim-popup">
       <div class="sim-header">
@@ -1043,7 +987,7 @@
         { period: '5限', subject: '国語', time: '13:20 ~ 14:10', start: '13:20', end: '14:10', teacher: '△△先生', room: '3年2組', cardClass: 'card-japanese' },
         { period: '6限', subject: '理科', time: '14:20 ~ 15:10', start: '14:20', end: '15:10', teacher: '〇〇先生', room: '理科室', cardClass: 'card-science' },
       ],
-      4: [ // 木曜日（画像基準）
+      4: [ // 木曜日
         { period: '1限', subject: '数学', time: '8:40 ~ 9:30', start: '08:40', end: '09:30', teacher: '〇〇先生', room: '3年2組', cardClass: 'card-math' },
         { period: '2限', subject: '英語', time: '9:40 ~ 10:30', start: '09:40', end: '10:30', teacher: '△△先生', room: '3年2組', cardClass: 'card-english' },
         { period: '3限', subject: '体育', time: '10:40 ~ 11:30', start: '10:40', end: '11:30', teacher: '□□先生', room: '体育館', cardClass: 'card-pe' },
@@ -1062,7 +1006,7 @@
     };
 
     // 初期状態・アプリケーション変数
-    let simulatedDate = null; // nullなら現在のリアルタイム
+    let simulatedDate = null;
     let belongings = JSON.parse(localStorage.getItem('app_belongings')) || [
       { id: 1, name: '体育着', checked: false },
       { id: 2, name: '筆記用具', checked: false }
@@ -1083,11 +1027,6 @@
     // 画面全体の再描画
     function renderApp() {
       const now = getCurrentDate();
-      
-      // ステータスバー時刻
-      const hours = String(now.getHours()).padStart(2, '0');
-      const mins = String(now.getMinutes()).padStart(2, '0');
-      document.getElementById('status-time').innerText = `${hours}:${mins}`;
 
       // 日付＆曜日表示
       const month = now.getMonth() + 1;
@@ -1209,7 +1148,6 @@
     // 毎秒呼び出しで時刻とカウントダウンを更新
     function updateClockAndTimer() {
       if (simulatedDate) {
-        // シミュレーション時は時間を少し進める（1秒ずつ）
         simulatedDate.setSeconds(simulatedDate.getSeconds() + 1);
       }
       renderApp();
@@ -1228,7 +1166,6 @@
       popup.classList.toggle('active');
       if (popup.classList.contains('active')) {
         const now = getCurrentDate();
-        // local iso stringのフォーマット
         const localIso = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
         document.getElementById('sim-datetime-input').value = localIso;
       }
@@ -1281,7 +1218,6 @@
 
       if (syncContainer) syncContainer.innerHTML = syncTagsHtml;
       
-      // LocalStorage保存
       localStorage.setItem('app_belongings', JSON.stringify(belongings));
     }
 
@@ -1345,11 +1281,11 @@
     }
 
     function setWeekTab(dayNum) {
+      const dayKeys = ['mon','tue','wed','thu','fri'];
       for (let i = 1; i <= 5; i++) {
-        const tab = document.getElementById(['mon','tue','wed','thu','fri'][i-1] ? `tab-${['mon','tue','wed','thu','fri'][i-1]}` : '');
+        const tab = document.getElementById(`tab-${dayKeys[i-1]}`);
         if (tab) tab.classList.remove('active');
       }
-      const dayKeys = ['mon','tue','wed','thu','fri'];
       if (dayKeys[dayNum - 1]) {
         document.getElementById(`tab-${dayKeys[dayNum - 1]}`).classList.add('active');
       }
