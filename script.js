@@ -3,14 +3,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// ★ ここにあなたのFirebase設定を貼り付けます
+// Firebase設定（最新の設定情報を反映）
 const firebaseConfig = {
-    apiKey: "ここにさっきコピーしたapiKeyを貼る",
-    authDomain: "ここにさっきコピーしたauthDomainを貼る",
-    projectId: "ここにさっきコピーしたprojectIdを貼る",
-    storageBucket: "ここにさっきコピーしたstorageBucketを貼る",
-    messagingSenderId: "ここにさっきコピーしたmessagingSenderIdを貼る",
-    appId: "ここにさっきコピーしたappIdを貼る"
+    apiKey: "AIzaSyBthuDcJkxPQNzYTxh6TWiO45fKV-WNiHE",
+    authDomain: "my-timetable-app-cd3b3.firebaseapp.com",
+    projectId: "my-timetable-app-cd3b3",
+    storageBucket: "my-timetable-app-cd3b3.firebasestorage.app",
+    messagingSenderId: "1021970249631",
+    appId: "1:1021970249631:web:1196770af0f8e55180afaa"
 };
 
 // Firebase初期化
@@ -21,77 +21,53 @@ const db = getFirestore(app);
 let currentUser = null;
 let isSignUpMode = false;
 
-const defaultTimetable = {
-    '月': [
-        {subject: '国語', teacher: '佐藤先生', room: '3年2組', color: 'blue'},
-        {subject: '数学', teacher: '鈴木先生', room: '3年2組', color: 'green'},
-        {subject: '英語', teacher: '田中先生', room: '3年2組', color: 'orange'},
-        {subject: '理科', teacher: '高橋先生', room: '理科室', color: 'purple'},
-        {subject: '社会', teacher: '渡辺先生', room: '3年2組', color: 'pink'},
-        {subject: '体育', teacher: '伊藤先生', room: '体育館', color: 'yellow'}
-    ],
-    '火': [
-        {subject: '数学', teacher: '鈴木先生', room: '3年2組', color: 'green'},
-        {subject: '英語', teacher: '田中先生', room: '3年2組', color: 'orange'},
-        {subject: '国語', teacher: '佐藤先生', room: '3年2組', color: 'blue'},
-        {subject: '体育', teacher: '伊藤先生', room: '体育館', color: 'yellow'},
-        {subject: '理科', teacher: '高橋先生', room: '理科室', color: 'purple'},
-        {subject: '社会', teacher: '渡辺先生', room: '3年2組', color: 'pink'}
-    ],
-    '水': [
-        {subject: '英語', teacher: '田中先生', room: '3年2組', color: 'orange'},
-        {subject: '国語', teacher: '佐藤先生', room: '3年2組', color: 'blue'},
-        {subject: '体育', teacher: '伊藤先生', room: '体育館', color: 'yellow'},
-        {subject: '数学', teacher: '鈴木先生', room: '3年2組', color: 'green'},
-        {subject: '国語', teacher: '佐藤先生', room: '3年2組', color: 'blue'},
-        {subject: '理科', teacher: '高橋先生', room: '理科室', color: 'purple'}
-    ],
-    '木': [
-        {subject: '国語', teacher: '佐藤先生', room: '3年2組', color: 'blue'},
-        {subject: '数学', teacher: '鈴木先生', room: '3年2組', color: 'green'},
-        {subject: '英語', teacher: '田中先生', room: '3年2組', color: 'orange'},
-        {subject: '理科', teacher: '高橋先生', room: '理科室', color: 'purple'},
-        {subject: '社会', teacher: '渡辺先生', room: '3年2組', color: 'pink'},
-        {subject: '国語', teacher: '佐藤先生', room: '3年2組', color: 'blue'}
-    ],
-    '金': [
-        {subject: '社会', teacher: '渡辺先生', room: '3年2組', color: 'pink'},
-        {subject: '理科', teacher: '高橋先生', room: '理科室', color: 'purple'},
-        {subject: '数学', teacher: '鈴木先生', room: '3年2組', color: 'green'},
-        {subject: '国語', teacher: '佐藤先生', room: '3年2組', color: 'blue'},
-        {subject: '体育', teacher: '伊藤先生', room: '体育館', color: 'yellow'},
-        {subject: '英語', teacher: '田中先生', room: '3年2組', color: 'orange'}
+const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+
+function generateDefaultClasses() {
+    const classes = [];
+    const grades = ['1', '2', '3'];
+    const sampleNames = ["佐藤 翔太", "田中 葵", "鈴木 太陽", "高橋 健斗", "伊藤 結衣", "渡辺 拓海", "中村 海斗", "小林 さくら"];
+    
+    grades.forEach(grade => {
+        for (let num = 1; num <= 5; num++) {
+            classes.push({
+                id: `${grade}-${num}`,
+                grade: grade,
+                name: `${grade}年${num}組`,
+                students: [...sampleNames].sort(() => Math.random() - 0.5).slice(0, 5)
+            });
+        }
+    });
+    return classes;
+}
+
+const defaultData = {
+    profile: {
+        name: "田中 先生",
+        school: "第一中学校",
+        subject: "数学"
+    },
+    classes: generateDefaultClasses(),
+    timetable: [
+        { id: 101, day: '月', period: 1, target: '1年1組', subject: '数学', room: '101教室' },
+        { id: 102, day: '月', period: 3, target: '2年3組', subject: '数学', room: '203教室' },
+        { id: 103, day: '火', period: 2, target: '1年2組', subject: '数学', room: '102教室' },
+        { id: 104, day: '火', period: 4, target: '3年5組', subject: '数学', room: '305教室' },
+        { id: 105, day: '水', period: 1, target: '1年3組', subject: '数学', room: '103教室' },
+        { id: 106, day: '水', period: 5, target: '2年1組', subject: '数学', room: '201教室' },
+        { id: 107, day: '木', period: 1, target: '1年1組', subject: '数学', room: '101教室' },
+        { id: 108, day: '木', period: 2, target: '2年2組', subject: '数学', room: '202教室' },
+        { id: 109, day: '木', period: 4, target: '3年2組', subject: '数学', room: '302教室' },
+        { id: 110, day: '金', period: 3, target: '1年5組', subject: '数学', room: '105教室' },
+        { id: 111, day: '金', period: 6, target: '3年1組', subject: '数学', room: '301教室' }
     ]
 };
 
-const periodTimes = [
-    { period: '1限', start: '09:05', end: '09:55' },
-    { period: '2限', start: '10:05', end: '10:55' },
-    { period: '3限', start: '11:05', end: '11:55' },
-    { type: 'lunch', name: '昼休み', start: '11:55', end: '12:30' },
-    { period: '4限', start: '12:30', end: '13:20' },
-    { period: '5限', start: '13:30', end: '14:20' },
-    { period: '6限', start: '14:30', end: '15:20' }
-];
-
-let currentTab = 'home';
-let selectedDayForTimetable = '木';
-
-let timetableData = JSON.parse(JSON.stringify(defaultTimetable));
-let quickItems = [
-    { text: '体育着', checked: false },
-    { text: '筆記用具', checked: true },
-    { text: '数学の教科書・ノート', checked: false }
-];
-let tasks = [
-    { title: '数学 ワークP30〜32', limit: '明日まで', done: false },
-    { title: '英語 単語プリント暗記', limit: '10月10日まで', done: true }
-];
-let userProfile = {
-    name: '松澤一樹',
-    school: '八幡工業高等学校',
-    grade: '3年2組'
-};
+let appData = JSON.parse(JSON.stringify(defaultData));
+let currentEditClassId = null;
+let selectedClassIndex = null;
+let selectedStudentIndex = null;
+let selectedDay = '木';
 
 // 認証状態の監視
 onAuthStateChanged(auth, async (user) => {
@@ -101,13 +77,13 @@ onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUser = user;
         authScreen.classList.add('hidden');
-        bottomNav.classList.remove('hidden');
+        if (bottomNav) bottomNav.style.display = 'flex';
         await loadUserData();
-        renderApp();
+        renderAll();
     } else {
         currentUser = null;
         authScreen.classList.remove('hidden');
-        bottomNav.classList.add('hidden');
+        if (bottomNav) bottomNav.style.display = 'none';
     }
 });
 
@@ -117,7 +93,7 @@ window.toggleAuthMode = function() {
     const btn = document.getElementById('auth-submit-btn');
     const toggleBtn = document.getElementById('auth-toggle-btn');
     const errorEl = document.getElementById('auth-error');
-    errorEl.classList.add('hidden');
+    errorEl.style.display = 'none';
 
     if (isSignUpMode) {
         desc.textContent = '新規アカウントを作成して始めよう';
@@ -134,11 +110,11 @@ window.handleAuth = async function() {
     const email = document.getElementById('auth-email').value.trim();
     const password = document.getElementById('auth-password').value;
     const errorEl = document.getElementById('auth-error');
-    errorEl.classList.add('hidden');
+    errorEl.style.display = 'none';
 
     if (!email || !password) {
         errorEl.textContent = 'メールアドレスとパスワードを入力してください';
-        errorEl.classList.remove('hidden');
+        errorEl.style.display = 'block';
         return;
     }
 
@@ -150,7 +126,7 @@ window.handleAuth = async function() {
         }
     } catch (error) {
         errorEl.textContent = 'エラー: ' + error.message;
-        errorEl.classList.remove('hidden');
+        errorEl.style.display = 'block';
     }
 };
 
@@ -162,14 +138,10 @@ window.handleLogout = async function() {
 async function loadUserData() {
     if (!currentUser) return;
     try {
-        const docRef = doc(db, "users", currentUser.uid);
+        const docRef = doc(db, "teacher_users", currentUser.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.timetable) timetableData = data.timetable;
-            if (data.quickItems) quickItems = data.quickItems;
-            if (data.tasks) tasks = data.tasks;
-            if (data.userProfile) userProfile = data.userProfile;
+            appData = docSnap.data();
         }
     } catch (e) {
         console.error("データ読み込み失敗:", e);
@@ -178,353 +150,372 @@ async function loadUserData() {
 
 // Firestoreへのデータ保存
 async function saveData() {
+    renderAll();
     if (!currentUser) return;
     try {
-        await setDoc(doc(db, "users", currentUser.uid), {
-            timetable: timetableData,
-            quickItems: quickItems,
-            tasks: tasks,
-            userProfile: userProfile
-        });
+        await setDoc(doc(db, "teacher_users", currentUser.uid), appData);
     } catch (e) {
         console.error("データ保存失敗:", e);
     }
 }
 
-window.switchTab = function(tab) {
-    currentTab = tab;
-    ['home', 'timetable', 'tasks', 'settings'].forEach(t => {
-        const btn = document.getElementById('nav-' + t);
-        if (btn) {
-            if (t === tab) {
-                btn.classList.remove('text-slate-400');
-                btn.classList.add('text-blue-500');
-            } else {
-                btn.classList.remove('text-blue-500');
-                btn.classList.add('text-slate-400');
-            }
-        }
-    });
-    renderApp();
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) mainContent.scrollTop = 0;
+// タブ切り替え
+window.switchTab = function(tabName, btnEl) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+
+    if (btnEl) {
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        btnEl.classList.add('active');
+    }
 }
 
-window.renderApp = function() {
-    const container = document.getElementById('main-content');
-    if (!container) return;
-    if (currentTab === 'home') container.innerHTML = renderHome();
-    else if (currentTab === 'timetable') container.innerHTML = renderTimetableTab();
-    else if (currentTab === 'tasks') container.innerHTML = renderTasksTab();
-    else if (currentTab === 'settings') container.innerHTML = renderSettingsTab();
+function renderDatesHeader() {
+    const today = new Date();
+    const month = today.getMonth() + 1;
+    const date = today.getDate();
+    const dayOfWeek = dayNames[today.getDay()];
+    
+    const dateDisplay = document.getElementById('today-date-display');
+    if (dateDisplay) dateDisplay.innerText = `${month}月${date}日 (${dayOfWeek})`;
+
+    const nextDaysContainer = document.getElementById('next-days-container');
+    if (!nextDaysContainer) return;
+    nextDaysContainer.innerHTML = '';
+
+    for (let i = 1; i <= 4; i++) {
+        const nextDate = new Date();
+        nextDate.setDate(today.getDate() + i);
+
+        const nMonth = nextDate.getMonth() + 1;
+        const nDate = nextDate.getDate();
+        const nDayOfWeek = dayNames[nextDate.getDay()];
+
+        const item = document.createElement('div');
+        item.className = 'next-day-item';
+        item.innerHTML = `
+            <div class="next-day-label">${nDayOfWeek}曜</div>
+            <div class="next-day-date">${nMonth}/${nDate}</div>
+        `;
+        nextDaysContainer.appendChild(item);
+    }
+
+    if (dayOfWeek !== '土' && dayOfWeek !== '日') {
+        selectedDay = dayOfWeek;
+    }
 }
 
-function renderHome() {
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const date = now.getDate();
-    const daysArr = ['日', '月', '火', '水', '木', '金', '土'];
-    const dayOfWeekStr = daysArr[now.getDay()];
+function renderAll() {
+    renderDatesHeader();
 
-    let dayKey = dayOfWeekStr;
-    if (!timetableData[dayKey]) dayKey = '木';
-
-    const lessons = timetableData[dayKey];
-    const currentStatus = getCurrentLessonStatus();
-
-    let html = '<div class="p-5">';
-    html += '<div class="flex justify-between items-center mb-4">';
-    html += '<div>';
-    html += '<div class="flex items-center gap-2"><span class="text-2xl">☀️</span><h1 class="text-xl font-bold text-slate-700">おはよう！ ' + userProfile.name + '</h1></div>';
-    html += '<p class="text-sm text-slate-500 font-medium mt-0.5">' + month + '月' + date + '日（' + dayOfWeekStr + '）</p>';
-    html += '</div>';
-    html += '<button onclick="handleLogout()" class="text-xs text-slate-400 hover:text-red-500 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100 font-bold"><i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト</button>';
-    html += '</div>';
-
-    html += '<div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-5 text-white shadow-lg shadow-blue-500/20 mb-6 relative overflow-hidden">';
-    html += '<div class="absolute -right-6 -bottom-6 text-white/10 text-9xl font-extrabold pointer-events-none"><i class="fa-solid fa-graduation-cap"></i></div>';
-    html += '<div class="flex justify-between items-start mb-2"><span class="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold">' + currentStatus.badge + '</span><span class="text-xs font-medium opacity-90">' + currentStatus.timeRange + '</span></div>';
-    html += '<div class="my-2"><h2 class="text-2xl font-extrabold tracking-wide">' + currentStatus.title + '</h2><p class="text-sm opacity-90 mt-1">' + currentStatus.subtitle + '</p></div>';
-    html += '<div class="mt-4 pt-3 border-t border-white/20 flex justify-between items-center text-xs font-bold"><span>' + currentStatus.footerText + '</span><span>' + userProfile.grade + '</span></div>';
-    html += '</div>';
-
-    html += '<div class="flex items-center gap-2 mb-3"><i class="fa-solid fa-book-open text-blue-500"></i><h2 class="text-base font-bold text-slate-700">今日の時間割 (' + dayKey + '曜)</h2></div>';
-    html += '<div class="space-y-3 mb-6">';
+    const bannerTeacher = document.getElementById('banner-teacher');
+    if (bannerTeacher) bannerTeacher.innerText = appData.profile.name;
+    const bannerSchool = document.getElementById('banner-school');
+    if (bannerSchool) bannerSchool.innerText = appData.profile.school;
+    const bannerSubject = document.getElementById('banner-subject');
+    if (bannerSubject) bannerSubject.innerText = appData.profile.subject;
     
-    lessons.forEach((lesson, idx) => {
-        const pTime = periodTimes[idx];
-        const isNow = currentStatus.activeIdx === idx;
-        const isNext = currentStatus.nextIdx === idx;
-        const themeClass = 'theme-' + (lesson.color || 'blue');
+    const settingName = document.getElementById('setting-name');
+    if (settingName) settingName.value = appData.profile.name;
+    const settingSchool = document.getElementById('setting-school');
+    if (settingSchool) settingSchool.value = appData.profile.school;
+    const settingSubject = document.getElementById('setting-subject');
+    if (settingSubject) settingSubject.value = appData.profile.subject;
 
-        html += '<div class="p-3.5 rounded-2xl border-2 ' + themeClass + ' flex items-center gap-3 transition-all ' + (isNow ? 'ring-4 ring-blue-400/30 scale-[1.02]' : '') + '">';
-        html += '<div class="bg-white/80 backdrop-blur-sm px-3 py-2.5 rounded-xl text-center min-w-[50px] shadow-sm"><span class="text-xs font-bold text-slate-400 block leading-none">第</span><span class="text-base font-extrabold text-slate-700 leading-none">' + (idx + 1) + '</span></div>';
-        html += '<div class="flex-1">';
-        html += '<div class="flex justify-between items-center"><h3 class="text-base font-bold text-slate-800">' + (lesson.subject || '（未設定）') + '</h3>';
-        if (isNow) html += '<span class="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">授業中</span>';
-        if (isNext) html += '<span class="text-blue-600 text-xs font-bold">次の授業 ➔</span>';
-        html += '</div>';
-        html += '<p class="text-xs text-slate-500 mt-0.5">' + pTime.start + ' ~ ' + pTime.end + ' | ' + (lesson.teacher || '') + ' ' + (lesson.room || '') + '</p>';
-        html += '</div></div>';
-    });
-    
-    html += '</div>';
+    renderWeeklyTable();
+    renderDayClassList(selectedDay);
+    renderClassGrid();
+    updateTargetDropdowns();
 
-    html += '<div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">';
-    html += '<div class="flex justify-between items-center mb-3"><h3 class="text-sm font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-list-check text-blue-500"></i> 今日の持ち物クイック確認</h3>';
-    html += '<button onclick="openItemsModal()" class="text-xs font-bold text-blue-500 bg-blue-50 px-2.5 py-1 rounded-lg hover:bg-blue-100 transition"><i class="fa-solid fa-pen"></i> 編集</button></div>';
-    html += '<div class="space-y-2">';
-    
-    quickItems.forEach((item, i) => {
-        html += '<label class="flex items-center gap-3 text-sm cursor-pointer py-1 px-2 rounded-xl hover:bg-slate-50 transition">';
-        html += '<input type="checkbox" ' + (item.checked ? 'checked' : '') + ' onchange="toggleQuickItem(' + i + ')" class="w-4 h-4 text-blue-500 rounded border-slate-300">';
-        html += '<span class="' + (item.checked ? 'line-through text-slate-400' : 'text-slate-700') + ' font-medium">' + item.text + '</span>';
-        html += '</label>';
-    });
-
-    html += '</div></div></div>';
-    return html;
+    if (window.lucide) {
+        lucide.createIcons();
+    }
 }
 
-function renderTimetableTab() {
+function renderWeeklyTable() {
     const days = ['月', '火', '水', '木', '金'];
-    const lessons = timetableData[selectedDayForTimetable];
+    const tbody = document.getElementById('weekly-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
 
-    let html = '<div class="p-5">';
-    html += '<h1 class="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2"><i class="fa-solid fa-calendar-days text-blue-500"></i> 一週間時間割</h1>';
-    html += '<div class="flex bg-slate-200/70 p-1 rounded-2xl mb-5">';
-    
     days.forEach(d => {
-        html += '<button onclick="window.setSelectedDay(\'' + d + '\')" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all ' + (selectedDayForTimetable === d ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500') + '">' + d + '曜日</button>';
-    });
-    
-    html += '</div><div class="space-y-3">';
-
-    lessons.forEach((lesson, idx) => {
-        const pTime = periodTimes[idx];
-        const themeClass = 'theme-' + (lesson.color || 'blue');
-        html += '<div onclick="openLessonModal(\'' + selectedDayForTimetable + '\', ' + idx + ')" class="p-4 rounded-2xl border-2 ' + themeClass + ' flex items-center justify-between cursor-pointer hover:shadow-md transition-all">';
-        html += '<div class="flex items-center gap-3">';
-        html += '<div class="bg-white/85 px-3 py-2 rounded-xl text-center min-w-[50px] shadow-sm"><span class="text-[10px] font-bold text-slate-400 block leading-none">第</span><span class="text-sm font-extrabold text-slate-700 leading-none">' + (idx + 1) + '</span></div>';
-        html += '<div><h3 class="text-base font-bold text-slate-800">' + (lesson.subject || '（タップして設定）') + '</h3><p class="text-xs text-slate-500 mt-0.5">' + pTime.start + ' ~ ' + pTime.end + ' | ' + (lesson.teacher || '先生未設定') + ' ' + (lesson.room || '') + '</p></div>';
-        html += '</div><i class="fa-solid fa-chevron-right text-slate-400 text-sm mr-1"></i></div>';
-    });
-
-    html += '</div></div>';
-    return html;
-}
-
-window.setSelectedDay = function(d) {
-    selectedDayForTimetable = d;
-    renderApp();
-};
-
-function renderTasksTab() {
-    let html = '<div class="p-5">';
-    html += '<div class="flex justify-between items-center mb-4"><h1 class="text-xl font-bold text-slate-700 flex items-center gap-2"><i class="fa-solid fa-square-check text-blue-500"></i> 課題・宿題管理</h1></div>';
-    html += '<div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-5">';
-    html += '<h3 class="text-xs font-bold text-slate-500 mb-2">新しい課題を追加</h3>';
-    html += '<div class="space-y-2"><input type="text" id="task-title-input" placeholder="課題の内容（例: 数学プリントP10）" class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm border-none outline-none">';
-    html += '<div class="flex gap-2"><input type="text" id="task-limit-input" placeholder="期限（例: 明日まで）" class="flex-1 bg-slate-100 rounded-xl px-3 py-2 text-sm border-none outline-none">';
-    html += '<button onclick="addTask()" class="bg-blue-500 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-sm">追加</button></div></div></div>';
-
-    html += '<div class="space-y-3">';
-    tasks.forEach((task, i) => {
-        html += '<div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center justify-between">';
-        html += '<label class="flex items-center gap-3 cursor-pointer flex-1">';
-        html += '<input type="checkbox" ' + (task.done ? 'checked' : '') + ' onchange="toggleTask(' + i + ')" class="w-5 h-5 text-blue-500 rounded border-slate-300">';
-        html += '<div><p class="text-sm font-bold ' + (task.done ? 'line-through text-slate-400' : 'text-slate-700') + '">' + task.title + '</p><p class="text-xs text-slate-400 mt-0.5"><i class="fa-regular fa-clock"></i> 期限: ' + task.limit + '</p></div>';
-        html += '</label><button onclick="deleteTask(' + i + ')" class="text-slate-300 hover:text-red-400 p-2"><i class="fa-solid fa-trash-can text-sm"></i></button></div>';
-    });
-    html += '</div></div>';
-    return html;
-}
-
-function renderSettingsTab() {
-    const days = ['月', '火', '水', '木', '金'];
-    let html = '<div class="p-5">';
-    html += '<h1 class="text-xl font-bold text-slate-700 mb-4 flex items-center gap-2"><i class="fa-solid fa-table-cells text-blue-500"></i> 一週間の時間割一覧表</h1>';
-    html += '<div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 mb-6 overflow-x-auto">';
-    html += '<table class="w-full text-center text-xs"><thead><tr class="border-b border-slate-100 text-slate-400 font-bold"><th class="py-2">時限</th>';
-    
-    days.forEach(d => { html += '<th class="py-2">' + d + '</th>'; });
-    html += '</tr></thead><tbody class="divide-y divide-slate-50">';
-
-    [0, 1, 2, 3, 4, 5].forEach(pIdx => {
-        html += '<tr><td class="py-2.5 font-bold text-slate-400 bg-slate-50/50">' + (pIdx + 1) + '限</td>';
-        days.forEach(d => {
-            const sub = (timetableData[d] && timetableData[d][pIdx] && timetableData[d][pIdx].subject) ? timetableData[d][pIdx].subject : '-';
-            html += '<td class="py-2.5 font-bold text-slate-700 px-1 truncate max-w-[60px]">' + sub + '</td>';
-        });
-        html += '</tr>';
-    });
-
-    html += '</tbody></table></div>';
-    html += '<div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">';
-    html += '<h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><i class="fa-solid fa-user-gear text-blue-500"></i> プロフィール設定</h3>';
-    html += '<div class="space-y-3">';
-    html += '<div><label class="text-xs font-bold text-slate-400 mb-1 block">お名前</label><input type="text" id="setting-name" value="' + userProfile.name + '" onchange="updateProfile()" class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm font-bold outline-none"></div>';
-    html += '<div><label class="text-xs font-bold text-slate-400 mb-1 block">学校名</label><input type="text" id="setting-school" value="' + userProfile.school + '" onchange="updateProfile()" class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm outline-none"></div>';
-    html += '<div><label class="text-xs font-bold text-slate-400 mb-1 block">学年・クラス</label><input type="text" id="setting-grade" value="' + userProfile.grade + '" onchange="updateProfile()" class="w-full bg-slate-100 rounded-xl px-3 py-2 text-sm outline-none"></div>';
-    html += '</div></div></div>';
-    return html;
-}
-
-function getCurrentLessonStatus() {
-    const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-    const toMin = (timeStr) => {
-        const [h, m] = timeStr.split(':').map(Number);
-        return h * 60 + m;
-    };
-
-    let activeIdx = -1;
-    let nextIdx = -1;
-    let title = '放課後・自由時間';
-    let subtitle = '今日の授業はすべて終了しました';
-    let badge = 'リラックス';
-    let timeRange = '';
-    let footerText = 'お疲れ様でした！';
-
-    const todayLessons = timetableData['木'];
-
-    for (let i = 0; i < periodTimes.length; i++) {
-        const pt = periodTimes[i];
-        if (pt.type === 'lunch') continue;
-
-        const startMin = toMin(pt.start);
-        const endMin = toMin(pt.end);
-
-        if (currentMinutes >= startMin && currentMinutes <= endMin) {
-            activeIdx = i;
-            const subName = todayLessons[i]?.subject || '授業';
-            title = (i + 1) + '限: ' + subName;
-            subtitle = (todayLessons[i]?.teacher || '') + ' (' + (todayLessons[i]?.room || '') + ')';
-            badge = '授業中';
-            timeRange = pt.start + ' ~ ' + pt.end;
-            footerText = '残り約 ' + (endMin - currentMinutes) + ' 分';
-            break;
-        } else if (currentMinutes < startMin) {
-            nextIdx = i;
-            break;
+        const th = document.getElementById(`th-${d}`);
+        if (th) {
+            if (d === selectedDay) th.classList.add('today-col');
+            else th.classList.remove('today-col');
         }
-    }
-
-    const lunchStart = toMin('11:55');
-    const lunchEnd = toMin('12:30');
-    if (currentMinutes >= lunchStart && currentMinutes <= lunchEnd) {
-        title = '昼休み 🍱';
-        subtitle = '12:30まで自由時間です';
-        badge = '休憩中';
-        timeRange = '11:55 ~ 12:30';
-        footerText = '午後の授業に備えよう';
-    }
-
-    if (activeIdx === -1 && title === '放課後・自由時間' && nextIdx !== -1) {
-        const pt = periodTimes[nextIdx];
-        title = 'まもなく ' + pt.period;
-        subtitle = pt.start + ' 開始予定';
-        badge = '準備中';
-        timeRange = pt.start + ' ~';
-        footerText = '教室移動をしましょう';
-    }
-
-    return { activeIdx, nextIdx, title, subtitle, badge, timeRange, footerText };
-}
-
-window.openLessonModal = function(day, periodIdx) {
-    document.getElementById('modal-day').value = day;
-    document.getElementById('modal-period').value = periodIdx;
-    const lesson = timetableData[day][periodIdx];
-    document.getElementById('modal-subject').value = lesson.subject || '';
-    document.getElementById('modal-teacher').value = lesson.teacher || '';
-    document.getElementById('modal-room').value = lesson.room || '';
-    document.getElementById('modal-color').value = lesson.color || 'blue';
-    document.getElementById('lesson-modal').classList.remove('hidden');
-}
-
-window.saveLesson = function() {
-    const day = document.getElementById('modal-day').value;
-    const idx = document.getElementById('modal-period').value;
-    timetableData[day][idx] = {
-        subject: document.getElementById('modal-subject').value,
-        teacher: document.getElementById('modal-teacher').value,
-        room: document.getElementById('modal-room').value,
-        color: document.getElementById('modal-color').value
-    };
-    saveData();
-    closeModal('lesson-modal');
-    renderApp();
-}
-
-window.openItemsModal = function() {
-    const listEl = document.getElementById('modal-items-list');
-    let html = '';
-    quickItems.forEach((item, i) => {
-        html += '<div class="flex items-center justify-between bg-slate-50 px-3 py-2 rounded-xl">';
-        html += '<span class="text-sm font-medium text-slate-700">' + item.text + '</span>';
-        html += '<button onclick="deleteQuickItem(' + i + ')" class="text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash-can"></i></button>';
-        html += '</div>';
     });
-    listEl.innerHTML = html;
-    document.getElementById('items-modal').classList.remove('hidden');
-}
 
-window.addQuickItem = function() {
-    const val = document.getElementById('new-item-input').value.trim();
-    if (val) {
-        quickItems.push({ text: val, checked: false });
-        document.getElementById('new-item-input').value = '';
-        saveData();
-        openItemsModal();
+    for (let p = 1; p <= 6; p++) {
+        const tr = document.createElement('tr');
+        const tdP = document.createElement('td');
+        tdP.className = 'period-num';
+        tdP.innerText = `${p}`;
+        tr.appendChild(tdP);
+
+        days.forEach(d => {
+            const td = document.createElement('td');
+            const item = appData.timetable.find(t => t.day === d && t.period === p);
+
+            const cell = document.createElement('div');
+            if (item) {
+                cell.className = 'weekly-cell has-item';
+                cell.onclick = () => openClassModal(item.id);
+                cell.innerHTML = `
+                    <div class="weekly-cell-target">${item.target}</div>
+                    <div class="weekly-cell-subject">${item.subject}</div>
+                `;
+            } else {
+                cell.className = 'weekly-cell';
+                cell.onclick = () => openClassModalForSlot(d, p);
+                cell.innerHTML = `<i data-lucide="plus" class="icon-line-sm" style="color:#cbd5e1;"></i>`;
+            }
+            td.appendChild(cell);
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
     }
 }
 
-window.deleteQuickItem = function(i) {
-    quickItems.splice(i, 1);
-    saveData();
-    openItemsModal();
+function renderDayClassList(day) {
+    selectedDay = day;
+    const listTitle = document.getElementById('day-list-title');
+    if (listTitle) {
+        listTitle.innerHTML = `<i data-lucide="list-checks" class="icon-line" style="color:#2563eb;"></i> ${day}曜日の授業一覧`;
+    }
+
+    const listContainer = document.getElementById('day-classes-list');
+    if (!listContainer) return;
+
+    const dayClasses = appData.timetable.filter(t => t.day === day).sort((a,b) => a.period - b.period);
+
+    let html = '';
+    dayClasses.forEach(item => {
+        const pClass = `p-${item.period}`;
+        html += `
+            <div class="class-card" onclick="openClassModal(${item.id})">
+                <div class="period-tag ${pClass}">${item.period}限</div>
+                <div class="class-details">
+                    <div>
+                        <span class="class-target">${item.target}</span>
+                        <span class="class-subject">${item.subject}</span>
+                    </div>
+                    <div class="class-time">${item.room}</div>
+                </div>
+                <span class="edit-badge"><i data-lucide="pencil" class="icon-line-sm"></i> 編集</span>
+            </div>
+        `;
+    });
+    listContainer.innerHTML = html || `<p style="text-align:center; color:#94a3b8; padding:16px; background:white; border-radius:12px;">${day}曜日に登録された授業はありません</p>`;
+    if (window.lucide) lucide.createIcons();
 }
 
-window.toggleQuickItem = function(i) {
-    quickItems[i].checked = !quickItems[i].checked;
-    saveData();
+window.openClassModalForSlot = function(day, period) {
+    openClassModal(null, day, period);
 }
 
-window.addTask = function() {
-    const title = document.getElementById('task-title-input').value.trim();
-    const limit = document.getElementById('task-limit-input').value.trim();
-    if (title) {
-        tasks.push({ title, limit: limit || '未設定', done: false });
+window.openClassModal = function(id = null, defaultDay = '月', defaultPeriod = 1) {
+    currentEditClassId = id;
+    if (id) {
+        const item = appData.timetable.find(t => t.id === id);
+        document.getElementById('modal-class-title').innerText = "授業の編集";
+        document.getElementById('edit-day').value = item.day;
+        document.getElementById('edit-period').value = item.period;
+        document.getElementById('edit-target').value = item.target;
+        document.getElementById('edit-subject').value = item.subject;
+        document.getElementById('edit-room').value = item.room;
+        document.getElementById('btn-delete-class').style.display = "block";
+    } else {
+        document.getElementById('modal-class-title').innerText = "授業の登録";
+        document.getElementById('edit-day').value = defaultDay;
+        document.getElementById('edit-period').value = defaultPeriod;
+        document.getElementById('edit-target').value = appData.classes[0]?.name || "1年1組";
+        document.getElementById('edit-subject').value = appData.profile.subject;
+        document.getElementById('edit-room').value = "101教室";
+        document.getElementById('btn-delete-class').style.display = "none";
+    }
+    document.getElementById('modal-class').style.display = "flex";
+    if (window.lucide) lucide.createIcons();
+}
+
+window.saveClass = function() {
+    const day = document.getElementById('edit-day').value;
+    const period = parseInt(document.getElementById('edit-period').value);
+    const target = document.getElementById('edit-target').value;
+    const subject = document.getElementById('edit-subject').value || "教科";
+    const room = document.getElementById('edit-room').value || "教室";
+
+    if (currentEditClassId) {
+        const idx = appData.timetable.findIndex(t => t.id === currentEditClassId);
+        appData.timetable[idx] = { id: currentEditClassId, day, period, target, subject, room };
+    } else {
+        appData.timetable.push({ id: Date.now(), day, period, target, subject, room });
+    }
+
+    selectedDay = day;
+    saveData();
+    closeModal('modal-class');
+}
+
+window.deleteClass = function() {
+    if (confirm('この授業を削除しますか？')) {
+        appData.timetable = appData.timetable.filter(t => t.id !== currentEditClassId);
         saveData();
-        renderApp();
+        closeModal('modal-class');
     }
 }
 
-window.toggleTask = function(i) {
-    tasks[i].done = !tasks[i].done;
-    saveData();
-    renderApp();
+window.filterGrade = function(grade, btn) {
+    btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderClassGrid(grade);
 }
 
-window.deleteTask = function(i) {
-    tasks.splice(i, 1);
-    saveData();
-    renderApp();
+function renderClassGrid(gradeFilter = 'all') {
+    const container = document.getElementById('class-grid-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const list = gradeFilter === 'all' ? appData.classes : appData.classes.filter(c => c.grade === gradeFilter);
+    list.forEach((c) => {
+        const originalIndex = appData.classes.findIndex(cls => cls.id === c.id);
+        const box = document.createElement('div');
+        box.className = 'class-box';
+        box.onclick = () => openStudentList(originalIndex);
+        box.innerHTML = `
+            <div class="class-box-name">${c.name}</div>
+            <div class="class-box-count">生徒数: ${c.students.length}人</div>
+        `;
+        container.appendChild(box);
+    });
 }
 
-window.updateProfile = function() {
-    userProfile.name = document.getElementById('setting-name').value;
-    userProfile.school = document.getElementById('setting-school').value;
-    userProfile.grade = document.getElementById('setting-grade').value;
+window.openAddClassModal = function() {
+    document.getElementById('new-class-name').value = '';
+    document.getElementById('modal-add-class').style.display = 'flex';
+}
+
+window.saveNewClass = function() {
+    const grade = document.getElementById('new-class-grade').value;
+    const name = document.getElementById('new-class-name').value || `${grade}年新規組`;
+    appData.classes.push({ id: Date.now().toString(), grade, name, students: [] });
     saveData();
+    closeModal('modal-add-class');
+}
+
+function updateTargetDropdowns() {
+    const selectClass = document.getElementById('edit-target');
+    const selectNotice = document.getElementById('notice-target-select');
+    if (!selectClass || !selectNotice) return;
+    
+    selectClass.innerHTML = '';
+    selectNotice.innerHTML = '<option value="学年全体">学年全体</option>';
+
+    appData.classes.forEach(c => {
+        selectClass.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+        selectNotice.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+    });
+}
+
+window.openStudentList = function(classIdx) {
+    selectedClassIndex = classIdx;
+    const targetClass = appData.classes[classIdx];
+    document.getElementById('student-class-title').innerText = `${targetClass.name} 名簿`;
+
+    const container = document.getElementById('student-list-container');
+    container.innerHTML = '';
+
+    targetClass.students.forEach((sName, sIdx) => {
+        const item = document.createElement('div');
+        item.className = 'student-item';
+        item.onclick = () => openStudentModal(sIdx);
+        item.innerHTML = `
+            <span class="student-num">${sIdx + 1}</span>
+            <span class="student-name">${sName}</span>
+            <span class="edit-badge"><i data-lucide="pencil" class="icon-line-sm"></i> 編集</span>
+        `;
+        container.appendChild(item);
+    });
+
+    if (targetClass.students.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:20px;">生徒が登録されていません</p>';
+    }
+
+    switchTab('students');
+    if (window.lucide) lucide.createIcons();
+}
+
+window.openAddStudentModal = function() {
+    openStudentModal(null);
+}
+
+window.openStudentModal = function(sIdx = null) {
+    selectedStudentIndex = sIdx;
+    if (sIdx !== null) {
+        document.getElementById('modal-student-title').innerText = "生徒名の編集";
+        document.getElementById('student-name-input').value = appData.classes[selectedClassIndex].students[sIdx];
+        document.getElementById('btn-delete-student').style.display = "block";
+    } else {
+        document.getElementById('modal-student-title').innerText = "生徒の追加";
+        document.getElementById('student-name-input').value = "";
+        document.getElementById('btn-delete-student').style.display = "none";
+    }
+    document.getElementById('modal-student').style.display = "flex";
+}
+
+window.saveStudent = function() {
+    const name = document.getElementById('student-name-input').value;
+    if (!name) return;
+
+    if (selectedStudentIndex !== null) {
+        appData.classes[selectedClassIndex].students[selectedStudentIndex] = name;
+    } else {
+        appData.classes[selectedClassIndex].students.push(name);
+    }
+
+    saveData();
+    openStudentList(selectedClassIndex);
+    closeModal('modal-student');
+}
+
+window.deleteStudent = function() {
+    if (confirm('この生徒を削除しますか？')) {
+        appData.classes[selectedClassIndex].students.splice(selectedStudentIndex, 1);
+        saveData();
+        openStudentList(selectedClassIndex);
+        closeModal('modal-student');
+    }
+}
+
+window.saveSettings = function() {
+    appData.profile.name = document.getElementById('setting-name').value;
+    appData.profile.school = document.getElementById('setting-school').value;
+    appData.profile.subject = document.getElementById('setting-subject').value;
+    saveData();
+    alert('プロフィールを保存しました！');
+    switchTab('home');
+}
+
+window.resetAllData = function() {
+    if (confirm('初期データに戻しますか？')) {
+        appData = JSON.parse(JSON.stringify(defaultData));
+        saveData();
+        alert('初期化完了しました！');
+    }
+}
+
+window.sendNotice = function() {
+    const title = document.getElementById('notice-title').value;
+    if (!title) {
+        alert('件名を入力してください');
+        return;
+    }
+    alert('連絡を送信しました！');
+    document.getElementById('notice-title').value = '';
+    document.getElementById('notice-body').value = '';
+    switchTab('home');
 }
 
 window.closeModal = function(id) {
-    document.getElementById(id).classList.add('hidden');
+    document.getElementById(id).style.display = "none";
 }
-
-setInterval(() => {
-    if (currentTab === 'home') renderApp();
-}, 60000);
