@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>時間割アプリ</title>
+  <style>
+    /* --- 全体スタイル & リセット --- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #eaf2f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+    }
+
+    /* スマホの外枠（モックアップ） */
+    .phone-container {
+      width: 390px;
+      height: 820px;
+      background: #f4f9fd;
+      border-radius: 44px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 0 0 12px #ffffff;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ステータスバー */
+    .status-bar {
+      height: 44px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 24px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e293b;
+      z-index: 10;
+    }
+
+    /* メインコンテンツエリア */
+    .app-body {
+      flex: 1;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 12px 16px 20px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* --- ホーム画面スタイル --- */
+    .home-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .greeting-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sun-icon {
+      font-size: 32px;
+    }
+
+    .greeting-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #1e293b;
+      line-height: 1.2;
+    }
+
+    .greeting-date {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .header-icons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 20px;
+      color: #475569;
+    }
+
+    /* カウントダウンカード */
+    .countdown-card {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(148, 163, 184, 0.08);
+    }
+
+    .countdown-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .clock-badge {
+      background: #3b82f6;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .countdown-text {
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .countdown-time {
+      font-size: 22px;
+      font-weight: 800;
+      color: #3b82f6;
+      margin-left: 4px;
+    }
+
+    .cheer-speech {
+      border: 1.5px solid #cbd5e1;
+      border-radius: 16px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: #475569;
+      font-weight: 600;
+      position: relative;
+      background: #f8fafc;
+    }
+
+    /* 今日の時間割リスト */
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .class-card {
+      background: #ffffff;
+      border-radius: 18px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(148, 163, 184, 0.05);
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .class-card:active {
+      transform: scale(0.98);
+    }
+
+    .period-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 15px;
+      margin-right: 14px;
+      flex-shrink: 0;
+    }
+
+    .class-info {
+      flex: 1;
+    }
+
+    .class-header-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .class-icon {
+      font-size: 16px;
+    }
+
+    .class-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .class-time {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .class-sub {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 1px;
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      position: absolute;
+      right: 14px;
+      top: 14px;
+    }
+
+    .status-active {
+      background-color: #3b82f6;
+      color: white;
+    }
+
+    .status-next {
+      color: #3b82f6;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    /* 今日の持ち物 */
+    .belongings-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+      font-size: 13px;
+      color: #334155;
+    }
+
+    .belongings-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* --- 時間割一覧画面スタイル --- */
+    .grid-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .day-selector {
+      display: flex;
+      background: #e2e8f0;
+      border-radius: 20px;
+      padding: 3px;
+      margin-bottom: 12px;
+    }
+
+    .day-btn {
+      flex: 1;
+      text-align: center;
+      padding: 6px 0;
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      border-radius: 16px;
+      cursor: pointer;
+    }
+
+    .day-btn.active {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .week-date-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 12px;
+      padding: 0 4px;
+    }
+
+    /* 時間割グリッド */
+    .timetable-grid {
+      display: grid;
+      grid-template-columns: 44px repeat(5, 1fr);
+      gap: 4px;
+      background: transparent;
+    }
+
+    .grid-cell {
+      background: #ffffff;
+      border-radius: 10px;
+      min-height: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1e293b;
+      cursor: pointer;
+      padding: 2px;
+      text-align: center;
+    }
+
+    .period-cell {
+      background: transparent;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .period-time {
+      font-size: 9px;
+      color: #94a3b8;
+      font-weight: normal;
+    }
+
+    /* タブバー */
+    .bottom-nav {
+      height: 64px;
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 10px;
+      color: #94a3b8;
+      font-weight: 600;
+      cursor: pointer;
+      width: 25%;
+    }
+
+    .nav-item.active {
+      color: #3b82f6;
+    }
+
+    .nav-icon {
+      font-size: 20px;
+    }
+
+    /* モーダル (編集用) */
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .modal-card {
+      background: white;
+      width: 85%;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      color: #1e293b;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 4px;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .modal-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-secondary { background: #e2e8f0; color: #475569; }
+
+    /* 各教科の指定配色 */
+    .color-blue { background-color: #dbeafe !important; color: #1e40af !important; }
+    .color-green { background-color: #dcfce7 !important; color: #166534 !important; }
+    .color-yellow { background-color: #fef9c3 !important; color: #854d0e !important; }
+    .color-purple { background-color: #f3e8ff !important; color: #6b21a8 !important; }
+    .color-orange { background-color: #ffedd5 !important; color: #9a3412 !important; }
+    .color-red { background-color: #fee2e2 !important; color: #991b1b !important; }
+
+    /* メインカラーバッジ（ホーム用） */
+    .bg-blue { background-color: #3b82f6; }
+    .bg-green { background-color: #22c55e; }
+    .bg-yellow { background-color: #eab308; }
+    .bg-purple { background-color: #a855f7; }
+    .bg-orange { background-color: #f97316; }
+    .bg-red { background-color: #ef4444; }
+  </style>
+</head>
+<body>
+
+  <div class="phone-container">
+    <!-- ステータスバー -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <span>📶 🔋</span>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div class="app-body">
+      
+      <!-- 1. ホーム画面 -->
+      <div id="tab-home" class="tab-content active">
+        <div class="home-header">
+          <div class="greeting-box">
+            <span class="sun-icon">☀️</span>
+            <div>
+              <div class="greeting-title">おはよう！</div>
+              <div class="greeting-date">10月8日 (木)</div>
+            </div>
+          </div>
+          <div class="header-icons">
+            <span>🐱</span>
+            <span>⚙️</span>
+          </div>
+        </div>
+
+        <div class="countdown-card">
+          <div class="countdown-left">
+            <div class="clock-badge">L</div>
+            <div class="countdown-text">
+              次の授業まで
+              <span class="countdown-time" id="countdown-min">12</span><span style="font-size:12px; color:#3b82f6; font-weight:bold;">分</span>
+            </div>
+          </div>
+          <div class="cheer-speech">がんばろう ☺︎</div>
+        </div>
+
+        <div class="section-title">📋 今日の時間割</div>
+        <div id="home-class-list"></div>
+
+        <div class="belongings-card">
+          <div class="belongings-left">
+            <span>📣</span>
+            <span>今日の持ち物：体育着・筆記用具</span>
+          </div>
+          <span>＞</span>
+        </div>
+      </div>
+
+      <!-- 2. 時間割一覧画面 -->
+      <div id="tab-timetable" class="tab-content">
+        <div class="grid-header">
+          <span style="font-size:20px;">＜</span>
+          <div class="page-title">時間割</div>
+          <div style="font-size:18px;">📅 ┆</div>
+        </div>
+
+        <div class="day-selector">
+          <div class="day-btn">月</div>
+          <div class="day-btn">火</div>
+          <div class="day-btn">水</div>
+          <div class="day-btn active">木</div>
+          <div class="day-btn">金</div>
+        </div>
+
+        <div class="week-date-bar">
+          <span>＜</span>
+          <span>10月8日 (木)</span>
+          <span>＞</span>
+        </div>
+
+        <div class="timetable-grid" id="timetable-grid-container">
+          <!-- JSで動的生成 -->
+        </div>
+
+        <div class="belongings-card" style="margin-top:16px;">
+          <div class="belongings-left">
+            <span>💡</span>
+            <div>
+              <div style="font-weight:bold; font-size:12px;">今週の連絡</div>
+              <div style="font-size:11px; color:#64748b;">明日の持ち物：体育着・筆記用具</div>
+            </div>
+          </div>
+          <span>＞</span>
+        </div>
+      </div>
+
+      <!-- 3. 課題画面 -->
+      <div id="tab-tasks" class="tab-content">
+        <div class="page-title" style="margin-bottom: 16px;">課題・宿題</div>
+        <div class="belongings-card">
+          <div class="belongings-left">
+            <input type="checkbox">
+            <span>数学ドリル P.24 - P.25</span>
+          </div>
+          <span style="font-size:11px; color:#ef4444;">明日まで</span>
+        </div>
+        <div class="belongings-card" style="margin-top:8px;">
+          <div class="belongings-left">
+            <input type="checkbox">
+            <span>英語 単語テスト勉強</span>
+          </div>
+          <span style="font-size:11px; color:#f97316;">10/10まで</span>
+        </div>
+      </div>
+
+      <!-- 4. その他画面 -->
+      <div id="tab-more" class="tab-content">
+        <div class="page-title" style="margin-bottom: 16px;">設定・その他</div>
+        <div class="belongings-card" onclick="resetData()">
+          <span>🔄 初期データに戻す</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ボトムナビゲーション -->
+    <div class="bottom-nav">
+      <div class="nav-item active" onclick="switchTab('home')">
+        <span class="nav-icon">🏠</span>
+        <span>ホーム</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('timetable')">
+        <span class="nav-icon">📅</span>
+        <span>時間割</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('tasks')">
+        <span class="nav-icon">☑️</span>
+        <span>課題</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('more')">
+        <span class="nav-icon">👤</span>
+        <span>その他</span>
+      </div>
+    </div>
+
+    <!-- 授業編集用モーダル -->
+    <div class="modal-overlay" id="edit-modal">
+      <div class="modal-card">
+        <div class="modal-title">授業の編集</div>
+        <div class="form-group">
+          <label>教科名</label>
+          <input type="text" id="modal-subject">
+        </div>
+        <div class="form-group">
+          <label>先生の名前</label>
+          <input type="text" id="modal-teacher">
+        </div>
+        <div class="form-group">
+          <label>場所 / 教室</label>
+          <input type="text" id="modal-room">
+        </div>
+        <div class="form-group">
+          <label>カラー</label>
+          <select id="modal-color">
+            <option value="blue">青 (数学)</option>
+            <option value="green">緑 (英語)</option>
+            <option value="yellow">黄 (体育)</option>
+            <option value="purple">紫 (理科)</option>
+            <option value="orange">橙 (国語)</option>
+            <option value="red">赤 (社会)</option>
+          </select>
+        </div>
+        <div class="modal-btns">
+          <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+          <button class="btn btn-primary" onclick="saveCell()">保存</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- 初期時間割データ (画像に合わせる) ---
+    const defaultTimetable = {
+      mon: [
+        { subject: '国語', color: 'orange' }, { subject: '数学', color: 'blue' },
+        { subject: '英語', color: 'green' }, { subject: '理科', color: 'purple' },
+        { subject: '社会', color: 'red' }, { subject: '体育', color: 'yellow' }
+      ],
+      tue: [
+        { subject: '数学', color: 'blue' }, { subject: '英語', color: 'green' },
+        { subject: '国語', color: 'orange' }, { subject: '体育', color: 'yellow' },
+        { subject: '理科', color: 'purple' }, { subject: '社会', color: 'red' }
+      ],
+      wed: [
+        { subject: '英語', color: 'green' }, { subject: '国語', color: 'orange' },
+        { subject: '体育', color: 'yellow' }, { subject: '数学', color: 'blue' },
+        { subject: '国語', color: 'orange' }, { subject: '理科', color: 'purple' }
+      ],
+      thu: [
+        { subject: '数学', color: 'blue', teacher: '○○先生', room: '3年2組', icon: '🔢' },
+        { subject: '英語', color: 'green', teacher: '△△先生', room: '3年2組', icon: '📖' },
+        { subject: '体育', color: 'yellow', teacher: '□□先生', room: '体育館', icon: '👟' },
+        { subject: '理科', color: 'purple', teacher: '○○先生', room: '3年2組', icon: '🧪' },
+        { subject: '国語', color: 'orange', teacher: '△△先生', room: '3年2組', icon: '📖' },
+        { subject: '社会', color: 'red', teacher: '□□先生', room: '3年2组', icon: '🌐' }
+      ],
+      fri: [
+        { subject: '社会', color: 'red' }, { subject: '理科', color: 'purple' },
+        { subject: '数学', color: 'blue' }, { subject: '国語', color: 'orange' },
+        { subject: '体育', color: 'yellow' }, { subject: '英語', color: 'green' }
+      ]
+    };
+
+    const periodTimes = [
+      { start: '08:40', end: '09:30' },
+      { start: '09:40', end: '10:30' },
+      { start: '10:40', end: '11:30' },
+      { start: '11:40', end: '12:30' },
+      { start: '13:20', end: '14:10' },
+      { start: '14:20', end: '15:10' }
+    ];
+
+    let timetableData = JSON.parse(localStorage.getItem('app_timetable')) || defaultTimetable;
+    let selectedCell = null;
+
+    // --- タブ切り替え ---
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(`tab-${tabName}`).classList.add('active');
+      const navIndex = ['home', 'timetable', 'tasks', 'more'].indexOf(tabName);
+      document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
+    }
+
+    // --- 今日のリスト描画（ホーム画面） ---
+    function renderHomeList() {
+      const container = document.getElementById('home-class-list');
+      container.innerHTML = '';
+      
+      const todayClasses = timetableData.thu; // 画像上の木曜日
+      
+      todayClasses.forEach((item, index) => {
+        const time = periodTimes[index];
+        const card = document.createElement('div');
+        card.className = 'class-card';
+        card.onclick = () => openEditModal('thu', index);
+        
+        let statusBadge = '';
+        if (index === 0) statusBadge = '<span class="status-pill status-active">授業中</span>';
+        if (index === 1) statusBadge = '<span class="status-pill status-next">次の授業 ＞</span>';
+
+        card.innerHTML = `
+          <div class="period-badge bg-${item.color}">${index + 1}限</div>
+          <div class="class-info">
+            <div class="class-header-line">
+              <span class="class-icon">${item.icon || '📚'}</span>
+              <span class="class-name">${item.subject}</span>
+            </div>
+            <div class="class-time">${time.start} 〜 ${time.end}</div>
+            <div class="class-sub">${item.teacher || '未設定'} ｜ ${item.room || '未設定'}</div>
+          </div>
+          ${statusBadge}
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // --- 時間割グリッド描画 ---
+    function renderGrid() {
+      const container = document.getElementById('timetable-grid-container');
+      container.innerHTML = '';
+
+      const days = ['mon', 'tue', 'wed', 'thu', 'fri'];
+
+      for (let p = 0; p < 6; p++) {
+        // 時刻ラベルセル
+        const timeCell = document.createElement('div');
+        timeCell.className = 'grid-cell period-cell';
+        timeCell.innerHTML = `<div>${p + 1}</div><div class="period-time">${periodTimes[p].start}<br>~<br>${periodTimes[p].end}</div>`;
+        container.appendChild(timeCell);
+
+        // 各曜日のセル
+        days.forEach(day => {
+          const item = timetableData[day][p];
+          const cell = document.createElement('div');
+          cell.className = `grid-cell color-${item.color}`;
+          cell.innerText = item.subject;
+          cell.onclick = () => openEditModal(day, p);
+          container.appendChild(cell);
+        });
+      }
+    }
+
+    // --- モーダル操作 ---
+    function openEditModal(day, periodIndex) {
+      selectedCell = { day, periodIndex };
+      const item = timetableData[day][periodIndex];
+      
+      document.getElementById('modal-subject').value = item.subject || '';
+      document.getElementById('modal-teacher').value = item.teacher || '';
+      document.getElementById('modal-room').value = item.room || '';
+      document.getElementById('modal-color').value = item.color || 'blue';
+      
+      document.getElementById('edit-modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('edit-modal').style.display = 'none';
+    }
+
+    function saveCell() {
+      if (!selectedCell) return;
+      const { day, periodIndex } = selectedCell;
+
+      timetableData[day][periodIndex] = {
+        ...timetableData[day][periodIndex],
+        subject: document.getElementById('modal-subject').value,
+        teacher: document.getElementById('modal-teacher').value,
+        room: document.getElementById('modal-room').value,
+        color: document.getElementById('modal-color').value
+      };
+
+      localStorage.setItem('app_timetable', JSON.stringify(timetableData));
+      renderHomeList();
+      renderGrid();
+      closeModal();
+    }
+
+    function resetData() {
+      if (confirm('初期の時間割に戻しますか？')) {
+        localStorage.removeItem('app_timetable');
+        timetableData = JSON.parse(JSON.stringify(defaultTimetable));
+        renderHomeList();
+        renderGrid();
+        alert('初期状態に戻りました。');
+      }
+    }
+
+    // --- カウントダウンシミュレーション ---
+    let countdown = 12;
+    setInterval(() => {
+      countdown = countdown > 1 ? countdown - 1 : 15;
+      document.getElementById('countdown-min').innerText = countdown;
+    }, 30000); // 30秒ごとに更新デモ
+
+    // 初期起動
+    renderHomeList();
+    renderGrid();
+  </script>
+</body>
+</html>
