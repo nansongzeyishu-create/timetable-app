@@ -180,6 +180,7 @@
       opacity: 0.9;
     }
 
+<<<<<<< HEAD
     /* ★ 今日の日付・翌日からの日付表示カード ★ */
     .date-display-card {
       background: white;
@@ -242,6 +243,8 @@
       margin-top: 2px;
     }
 
+=======
+>>>>>>> 81eee13f047deb4763aa2d580eb791f924711339
     /* セクション */
     .section-header {
       display: flex;
@@ -569,6 +572,7 @@
           <div class="banner-sub">担当教科: <span id="banner-subject">数学</span></div>
         </div>
 
+<<<<<<< HEAD
         <!-- ★ 今日の日付（大きく） & 翌日以降（小さく）の表示エリア ★ -->
         <div class="date-display-card">
           <div class="today-large-box">
@@ -580,6 +584,8 @@
           </div>
         </div>
 
+=======
+>>>>>>> 81eee13f047deb4763aa2d580eb791f924711339
         <div class="section-header">
           <div class="section-title">
             <i data-lucide="calendar-days" class="icon-line" style="color:#2563eb;"></i> 週間時間割（月〜金）
@@ -610,7 +616,11 @@
 
         <div class="section-header">
           <div class="section-title" id="day-list-title">
+<<<<<<< HEAD
             <i data-lucide="list-checks" class="icon-line" style="color:#2563eb;"></i> 本日の授業一覧
+=======
+            <i data-lucide="list-checks" class="icon-line" style="color:#2563eb;"></i> 木曜日の授業一覧
+>>>>>>> 81eee13f047deb4763aa2d580eb791f924711339
           </div>
         </div>
 
@@ -840,6 +850,7 @@
   </div>
 
   <script>
+<<<<<<< HEAD
     // 曜日の配列定義
     const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -883,6 +894,8 @@
       }
     }
 
+=======
+>>>>>>> 81eee13f047deb4763aa2d580eb791f924711339
     // 1年〜3年まで各5組（計15クラス）の初期名簿生成
     function generateDefaultClasses() {
       const classes = [];
@@ -930,7 +943,11 @@
     let currentEditClassId = null;
     let selectedClassIndex = null;
     let selectedStudentIndex = null;
+<<<<<<< HEAD
     let selectedDay = '木'; // デフォルト
+=======
+    let selectedDay = '木'; // デフォルト表示曜日
+>>>>>>> 81eee13f047deb4763aa2d580eb791f924711339
 
     function saveData() {
       localStorage.setItem('teacher_app_data_v2', JSON.stringify(appData));
@@ -950,9 +967,12 @@
 
     // 全体描画関数
     function renderAll() {
+<<<<<<< HEAD
       // 日付の更新
       renderDatesHeader();
 
+=======
+>>>>>>> 81eee13f047deb4763aa2d580eb791f924711339
       // プロフィール反映
       document.getElementById('banner-teacher').innerText = appData.profile.name;
       document.getElementById('banner-school').innerText = appData.profile.school;
@@ -1277,4 +1297,8 @@
     renderAll();
   </script>
 </body>
+<<<<<<< HEAD
 </html>
+=======
+</html>
+>>>>>>> 81eee13f047deb4763aa2d580eb791f924711339

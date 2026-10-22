@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // ==========================================
 // 1. Supabaseの接続設定
 // ==========================================
@@ -99,3 +100,14 @@ async function fetchClasses() {
 
 // ページが開いた時に実行
 window.onload = fetchClasses;
+=======
+const subjects = [
+  "国語",
+  "算数",
+  "理科",
+  "社会",
+  "英語"
+];
+
+console.log(subjects); 
+>>>>>>> 81eee13f047deb4763aa2d580eb791f924711339
