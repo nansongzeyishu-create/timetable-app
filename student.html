@@ -31,11 +31,39 @@
 
     <div class="w-full max-w-md h-screen sm:h-[844px] sm:rounded-[40px] sm:shadow-2xl bg-slate-50 flex flex-col relative overflow-hidden border border-slate-200">
 
+        <!-- ログイン画面（未ログイン時に表示） -->
+        <div id="auth-screen" class="absolute inset-0 bg-slate-50 z-50 flex flex-col justify-center px-6 hidden">
+            <div class="text-center mb-8">
+                <span class="text-5xl">📚</span>
+                <h1 class="text-2xl font-extrabold text-slate-700 mt-3">時間割アプリ</h1>
+                <p id="auth-mode-desc" class="text-xs text-slate-400 mt-1">ログインしてデータをクラウドに同期しよう</p>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
+                <div>
+                    <label class="text-xs font-bold text-slate-400 mb-1 block">メールアドレス</label>
+                    <input type="email" id="auth-email" placeholder="example@email.com" class="w-full bg-slate-100 rounded-xl px-4 py-3 text-sm border-none outline-none font-medium">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-slate-400 mb-1 block">パスワード</label>
+                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-100 rounded-xl px-4 py-3 text-sm border-none outline-none font-medium">
+                </div>
+                <div id="auth-error" class="text-xs text-red-500 font-bold hidden text-center"></div>
+                
+                <button onclick="handleAuth()" id="auth-submit-btn" class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl text-sm shadow-md shadow-blue-500/20">ログイン</button>
+                
+                <div class="text-center pt-2">
+                    <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-xs text-blue-500 font-bold hover:underline">アカウントをお持ちでない方は新規登録</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- メイン画面 -->
         <main id="main-content" class="flex-1 overflow-y-auto pb-24 no-scrollbar">
             <!-- JavaScriptで動的生成 -->
         </main>
 
-        <nav class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex justify-around items-center z-40 shadow-lg">
+        <nav id="bottom-nav" class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex justify-around items-center z-40 shadow-lg hidden">
             <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center text-blue-500 transition-all">
                 <i class="fa-solid fa-house text-xl mb-1"></i>
                 <span class="text-[11px] font-bold">ホーム</span>

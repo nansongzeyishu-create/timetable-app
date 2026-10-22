@@ -1,3 +1,26 @@
+// Firebase SDK のインポート
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+// ★ ここにあなたのFirebase設定を貼り付けます
+const firebaseConfig = {
+    apiKey: "ここにさっきコピーしたapiKeyを貼る",
+    authDomain: "ここにさっきコピーしたauthDomainを貼る",
+    projectId: "ここにさっきコピーしたprojectIdを貼る",
+    storageBucket: "ここにさっきコピーしたstorageBucketを貼る",
+    messagingSenderId: "ここにさっきコピーしたmessagingSenderIdを貼る",
+    appId: "ここにさっきコピーしたappIdを貼る"
+};
+
+// Firebase初期化
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let isSignUpMode = false;
+
 const defaultTimetable = {
     '月': [
         {subject: '国語', teacher: '佐藤先生', room: '3年2組', color: 'blue'},
@@ -54,30 +77,121 @@ const periodTimes = [
 let currentTab = 'home';
 let selectedDayForTimetable = '木';
 
-let timetableData = JSON.parse(localStorage.getItem('timetable_data')) || defaultTimetable;
-let quickItems = JSON.parse(localStorage.getItem('quick_items')) || [
+let timetableData = JSON.parse(JSON.stringify(defaultTimetable));
+let quickItems = [
     { text: '体育着', checked: false },
     { text: '筆記用具', checked: true },
     { text: '数学の教科書・ノート', checked: false }
 ];
-let tasks = JSON.parse(localStorage.getItem('tasks_data')) || [
+let tasks = [
     { title: '数学 ワークP30〜32', limit: '明日まで', done: false },
     { title: '英語 単語プリント暗記', limit: '10月10日まで', done: true }
 ];
-let userProfile = JSON.parse(localStorage.getItem('user_profile')) || {
-    name: '山田 太郎',
-    school: '〇〇中学校',
+let userProfile = {
+    name: '松澤一樹',
+    school: '八幡工業高等学校',
     grade: '3年2組'
 };
 
-function saveData() {
-    localStorage.setItem('timetable_data', JSON.stringify(timetableData));
-    localStorage.setItem('quick_items', JSON.stringify(quickItems));
-    localStorage.setItem('tasks_data', JSON.stringify(tasks));
-    localStorage.setItem('user_profile', JSON.stringify(userProfile));
+// 認証状態の監視
+onAuthStateChanged(auth, async (user) => {
+    const authScreen = document.getElementById('auth-screen');
+    const bottomNav = document.getElementById('bottom-nav');
+
+    if (user) {
+        currentUser = user;
+        authScreen.classList.add('hidden');
+        bottomNav.classList.remove('hidden');
+        await loadUserData();
+        renderApp();
+    } else {
+        currentUser = null;
+        authScreen.classList.remove('hidden');
+        bottomNav.classList.add('hidden');
+    }
+});
+
+window.toggleAuthMode = function() {
+    isSignUpMode = !isSignUpMode;
+    const desc = document.getElementById('auth-mode-desc');
+    const btn = document.getElementById('auth-submit-btn');
+    const toggleBtn = document.getElementById('auth-toggle-btn');
+    const errorEl = document.getElementById('auth-error');
+    errorEl.classList.add('hidden');
+
+    if (isSignUpMode) {
+        desc.textContent = '新規アカウントを作成して始めよう';
+        btn.textContent = '新規登録';
+        toggleBtn.textContent = 'すでにアカウントをお持ちの方はこちら（ログイン）';
+    } else {
+        desc.textContent = 'ログインしてデータをクラウドに同期しよう';
+        btn.textContent = 'ログイン';
+        toggleBtn.textContent = 'アカウントをお持ちでない方は新規登録';
+    }
+};
+
+window.handleAuth = async function() {
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const errorEl = document.getElementById('auth-error');
+    errorEl.classList.add('hidden');
+
+    if (!email || !password) {
+        errorEl.textContent = 'メールアドレスとパスワードを入力してください';
+        errorEl.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        if (isSignUpMode) {
+            await createUserWithEmailAndPassword(auth, email, password);
+        } else {
+            await signInWithEmailAndPassword(auth, email, password);
+        }
+    } catch (error) {
+        errorEl.textContent = 'エラー: ' + error.message;
+        errorEl.classList.remove('hidden');
+    }
+};
+
+window.handleLogout = async function() {
+    await signOut(auth);
+};
+
+// Firestoreからのデータ読み込み
+async function loadUserData() {
+    if (!currentUser) return;
+    try {
+        const docRef = doc(db, "users", currentUser.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.timetable) timetableData = data.timetable;
+            if (data.quickItems) quickItems = data.quickItems;
+            if (data.tasks) tasks = data.tasks;
+            if (data.userProfile) userProfile = data.userProfile;
+        }
+    } catch (e) {
+        console.error("データ読み込み失敗:", e);
+    }
 }
 
-function switchTab(tab) {
+// Firestoreへのデータ保存
+async function saveData() {
+    if (!currentUser) return;
+    try {
+        await setDoc(doc(db, "users", currentUser.uid), {
+            timetable: timetableData,
+            quickItems: quickItems,
+            tasks: tasks,
+            userProfile: userProfile
+        });
+    } catch (e) {
+        console.error("データ保存失敗:", e);
+    }
+}
+
+window.switchTab = function(tab) {
     currentTab = tab;
     ['home', 'timetable', 'tasks', 'settings'].forEach(t => {
         const btn = document.getElementById('nav-' + t);
@@ -96,7 +210,7 @@ function switchTab(tab) {
     if (mainContent) mainContent.scrollTop = 0;
 }
 
-function renderApp() {
+window.renderApp = function() {
     const container = document.getElementById('main-content');
     if (!container) return;
     if (currentTab === 'home') container.innerHTML = renderHome();
@@ -124,7 +238,7 @@ function renderHome() {
     html += '<div class="flex items-center gap-2"><span class="text-2xl">☀️</span><h1 class="text-xl font-bold text-slate-700">おはよう！ ' + userProfile.name + '</h1></div>';
     html += '<p class="text-sm text-slate-500 font-medium mt-0.5">' + month + '月' + date + '日（' + dayOfWeekStr + '）</p>';
     html += '</div>';
-    html += '<div class="flex items-center gap-2"><span class="text-2xl">🐱</span></div>';
+    html += '<button onclick="handleLogout()" class="text-xs text-slate-400 hover:text-red-500 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100 font-bold"><i class="fa-solid fa-arrow-right-from-bracket"></i> ログアウト</button>';
     html += '</div>';
 
     html += '<div class="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl p-5 text-white shadow-lg shadow-blue-500/20 mb-6 relative overflow-hidden">';
@@ -181,7 +295,7 @@ function renderTimetableTab() {
     html += '<div class="flex bg-slate-200/70 p-1 rounded-2xl mb-5">';
     
     days.forEach(d => {
-        html += '<button onclick="selectedDayForTimetable=\'' + d + '\'; renderApp();" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all ' + (selectedDayForTimetable === d ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500') + '">' + d + '曜日</button>';
+        html += '<button onclick="window.setSelectedDay(\'' + d + '\')" class="flex-1 py-2 rounded-xl text-xs font-bold transition-all ' + (selectedDayForTimetable === d ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500') + '">' + d + '曜日</button>';
     });
     
     html += '</div><div class="space-y-3">';
@@ -199,6 +313,11 @@ function renderTimetableTab() {
     html += '</div></div>';
     return html;
 }
+
+window.setSelectedDay = function(d) {
+    selectedDayForTimetable = d;
+    renderApp();
+};
 
 function renderTasksTab() {
     let html = '<div class="p-5">';
@@ -314,7 +433,7 @@ function getCurrentLessonStatus() {
     return { activeIdx, nextIdx, title, subtitle, badge, timeRange, footerText };
 }
 
-function openLessonModal(day, periodIdx) {
+window.openLessonModal = function(day, periodIdx) {
     document.getElementById('modal-day').value = day;
     document.getElementById('modal-period').value = periodIdx;
     const lesson = timetableData[day][periodIdx];
@@ -325,7 +444,7 @@ function openLessonModal(day, periodIdx) {
     document.getElementById('lesson-modal').classList.remove('hidden');
 }
 
-function saveLesson() {
+window.saveLesson = function() {
     const day = document.getElementById('modal-day').value;
     const idx = document.getElementById('modal-period').value;
     timetableData[day][idx] = {
@@ -339,7 +458,7 @@ function saveLesson() {
     renderApp();
 }
 
-function openItemsModal() {
+window.openItemsModal = function() {
     const listEl = document.getElementById('modal-items-list');
     let html = '';
     quickItems.forEach((item, i) => {
@@ -352,7 +471,7 @@ function openItemsModal() {
     document.getElementById('items-modal').classList.remove('hidden');
 }
 
-function addQuickItem() {
+window.addQuickItem = function() {
     const val = document.getElementById('new-item-input').value.trim();
     if (val) {
         quickItems.push({ text: val, checked: false });
@@ -362,18 +481,18 @@ function addQuickItem() {
     }
 }
 
-function deleteQuickItem(i) {
+window.deleteQuickItem = function(i) {
     quickItems.splice(i, 1);
     saveData();
     openItemsModal();
 }
 
-function toggleQuickItem(i) {
+window.toggleQuickItem = function(i) {
     quickItems[i].checked = !quickItems[i].checked;
     saveData();
 }
 
-function addTask() {
+window.addTask = function() {
     const title = document.getElementById('task-title-input').value.trim();
     const limit = document.getElementById('task-limit-input').value.trim();
     if (title) {
@@ -383,33 +502,29 @@ function addTask() {
     }
 }
 
-function toggleTask(i) {
+window.toggleTask = function(i) {
     tasks[i].done = !tasks[i].done;
     saveData();
     renderApp();
 }
 
-function deleteTask(i) {
+window.deleteTask = function(i) {
     tasks.splice(i, 1);
     saveData();
     renderApp();
 }
 
-function updateProfile() {
+window.updateProfile = function() {
     userProfile.name = document.getElementById('setting-name').value;
     userProfile.school = document.getElementById('setting-school').value;
     userProfile.grade = document.getElementById('setting-grade').value;
     saveData();
 }
 
-function closeModal(id) {
+window.closeModal = function(id) {
     document.getElementById(id).classList.add('hidden');
 }
 
 setInterval(() => {
     if (currentTab === 'home') renderApp();
 }, 60000);
-
-document.addEventListener('DOMContentLoaded', () => {
-    renderApp();
-});
