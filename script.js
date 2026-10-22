@@ -3,7 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// Firebase設定（最新の設定情報を反映）
+// Firebase設定
 const firebaseConfig = {
     apiKey: "AIzaSyBthuDcJkxPQNzYTxh6TWiO45fKV-WNiHE",
     authDomain: "my-timetable-app-cd3b3.firebaseapp.com",
@@ -76,13 +76,13 @@ onAuthStateChanged(auth, async (user) => {
 
     if (user) {
         currentUser = user;
-        authScreen.classList.add('hidden');
+        if (authScreen) authScreen.classList.add('hidden');
         if (bottomNav) bottomNav.style.display = 'flex';
         await loadUserData();
         renderAll();
     } else {
         currentUser = null;
-        authScreen.classList.remove('hidden');
+        if (authScreen) authScreen.classList.remove('hidden');
         if (bottomNav) bottomNav.style.display = 'none';
     }
 });
@@ -93,40 +93,51 @@ window.toggleAuthMode = function() {
     const btn = document.getElementById('auth-submit-btn');
     const toggleBtn = document.getElementById('auth-toggle-btn');
     const errorEl = document.getElementById('auth-error');
-    errorEl.style.display = 'none';
+    if (errorEl) errorEl.style.display = 'none';
 
     if (isSignUpMode) {
-        desc.textContent = '新規アカウントを作成して始めよう';
-        btn.textContent = '新規登録';
-        toggleBtn.textContent = 'すでにアカウントをお持ちの方はこちら（ログイン）';
+        if (desc) desc.textContent = '新規アカウントを作成して始めよう';
+        if (btn) btn.textContent = '新規登録';
+        if (toggleBtn) toggleBtn.textContent = 'すでにアカウントをお持ちの方はこちら（ログイン）';
     } else {
-        desc.textContent = 'ログインしてデータをクラウドに同期しよう';
-        btn.textContent = 'ログイン';
-        toggleBtn.textContent = 'アカウントをお持ちでない方は新規登録';
+        if (desc) desc.textContent = 'ログインしてデータをクラウドに同期しよう';
+        if (btn) btn.textContent = 'ログイン';
+        if (toggleBtn) toggleBtn.textContent = 'アカウントをお持ちでない方は新規登録';
     }
 };
 
 window.handleAuth = async function() {
-    const email = document.getElementById('auth-email').value.trim();
-    const password = document.getElementById('auth-password').value;
+    const emailInput = document.getElementById('auth-email');
+    const passInput = document.getElementById('auth-password');
     const errorEl = document.getElementById('auth-error');
-    errorEl.style.display = 'none';
+    
+    if (!emailInput || !passInput) return;
+    const email = emailInput.value.trim();
+    const password = passInput.value;
+    
+    if (errorEl) errorEl.style.display = 'none';
 
     if (!email || !password) {
-        errorEl.textContent = 'メールアドレスとパスワードを入力してください';
-        errorEl.style.display = 'block';
+        if (errorEl) {
+            errorEl.textContent = 'メールアドレスとパスワードを入力してください';
+            errorEl.style.display = 'block';
+        }
         return;
     }
 
     try {
         if (isSignUpMode) {
             await createUserWithEmailAndPassword(auth, email, password);
+            // 新規登録時は初期データをFirestoreに保存する
+            await saveData();
         } else {
             await signInWithEmailAndPassword(auth, email, password);
         }
     } catch (error) {
-        errorEl.textContent = 'エラー: ' + error.message;
-        errorEl.style.display = 'block';
+        if (errorEl) {
+            errorEl.textContent = 'エラー: ' + error.message;
+            errorEl.style.display = 'block';
+        }
     }
 };
 
@@ -142,9 +153,12 @@ async function loadUserData() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             appData = docSnap.data();
+        } else {
+            // データがまだなければ初期データを保存
+            await saveData();
         }
     } catch (e) {
-        console.error("データ読み込み失敗:", e);
+        console.warn("クラウドからのデータ読み込みをスキップしました（オフライン等）:", e);
     }
 }
 
@@ -159,10 +173,13 @@ async function saveData() {
     }
 }
 
-// タブ切り替え
+// タブ切り替え（安全対策版）
 window.switchTab = function(tabName, btnEl) {
+    const targetTab = document.getElementById(`tab-${tabName}`);
+    if (!targetTab) return;
+
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.getElementById(`tab-${tabName}`).classList.add('active');
+    targetTab.classList.add('active');
 
     if (btnEl) {
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
