@@ -1,3 +1,5 @@
+
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -43,7 +45,7 @@
             padding: 20px;
             box-sizing: border-box;
             overflow-y: auto;
-            padding-bottom: 80px; /* ナビゲーションバーのスペース */
+            padding-bottom: 80px;
         }
 
         .screen.active {
@@ -107,6 +109,10 @@
             display: flex;
             align-items: center;
             cursor: pointer;
+            transition: background 0.2s;
+        }
+        .today-item:hover {
+            background: #f0f4f8;
         }
         .period-num {
             font-weight: bold;
@@ -142,25 +148,44 @@
             cursor: pointer;
             border-radius: 4px;
             text-align: center;
+            transition: background 0.2s;
+        }
+        .grid-cell:hover {
+            background: #f0f4f8;
+        }
+        
+        /* 変更ありの赤枠・点滅アニメーション */
+        @keyframes blink-border {
+            0% { border-color: var(--accent-color); box-shadow: 0 0 2px var(--accent-color); }
+            50% { border-color: transparent; box-shadow: none; }
+            100% { border-color: var(--accent-color); box-shadow: 0 0 2px var(--accent-color); }
         }
         .grid-cell.has-change {
             border: 2px solid var(--accent-color);
+            animation: blink-border 1.5s infinite;
             position: relative;
+            box-sizing: border-box;
+            background-color: #fff5f5;
         }
         .grid-cell.has-change::after {
             content: '●';
             color: var(--accent-color);
             position: absolute;
-            top: 2px;
+            top: 1px;
             right: 2px;
             font-size: 8px;
         }
+        
         .grid-period {
             background-color: #eee;
             font-weight: bold;
             display: flex;
             justify-content: center;
             align-items: center;
+            cursor: default;
+        }
+        .grid-period:hover {
+            background: #eee;
         }
 
         /* 4. 詳細画面 */
@@ -206,13 +231,16 @@
             flex-direction: column;
             align-items: center;
             gap: 4px;
+            width: 50%;
+            height: 100%;
+            justify-content: center;
         }
         .nav-item.active {
             color: var(--primary-color);
             font-weight: bold;
         }
         .nav-icon {
-            font-size: 20px;
+            font-size: 22px;
         }
     </style>
 </head>
@@ -238,56 +266,38 @@
         <div class="date-header" id="today-date">2026年11月5日 (木)</div>
         <p style="margin-top:0; color:#666;">今日の時間割</p>
         <div class="today-list">
-            <div class="today-item" onclick="showDetail('木', 1, '国語', '教科書、ノート（宿題あり）')"><div class="period-num">1</div><div>国語</div></div>
-            <div class="today-item" onclick="showDetail('木', 2, '数学', 'コンパス、定規')"><div class="period-num">2</div><div>数学</div></div>
-            <div class="today-item" onclick="showDetail('木', 3, '体育', '体操服（外履き）')"><div class="period-num">3</div><div>体育</div></div>
-            <div class="today-item" onclick="showDetail('木', 4, '英語', '単語帳')"><div class="period-num">4</div><div>英語</div></div>
-            <div class="today-item" onclick="showDetail('木', 5, '理科', '実験レポート原稿')"><div class="period-num">5</div><div>理科</div></div>
+            <div class="today-item" onclick="showDetail('木', 1, '国語', '教科書、ノート（宿題提出あり）', 'home')"><div class="period-num">1</div><div>国語</div></div>
+            <div class="today-item" onclick="showDetail('木', 2, '数学', 'コンパス、定規', 'home')"><div class="period-num">2</div><div>数学</div></div>
+            <div class="today-item" onclick="showDetail('木', 3, '体育', '体操服（外履き用シューズ）', 'home')"><div class="period-num">3</div><div>体育</div></div>
+            <div class="today-item" onclick="showDetail('木', 4, '英語', '単語帳、ワークブック', 'home')"><div class="period-num">4</div><div>英語</div></div>
+            <div class="today-item" onclick="showDetail('木', 5, '理科', '実験レポートの原稿用紙', 'home')"><div class="period-num">5</div><div>理科</div></div>
         </div>
     </div>
 
     <!-- 3. 時間割一覧画面（週間） -->
     <div id="screen-timetable" class="screen">
         <h2>週間時間割</h2>
-        <p style="text-align: center; color: var(--accent-color); font-size: 12px; margin-top: -5px;">※赤枠は変更あり（タップで詳細）</p>
+        <p style="text-align: center; color: var(--accent-color); font-size: 11px; margin-top: -5px;">※赤枠点滅は変更あり（タップで確認）</p>
         <div class="timetable-grid">
-            <!-- ヘッダー行 -->
+            <!-- 曜日ヘッダー -->
             <div class="grid-header">限</div>
             <div class="grid-header">月</div><div class="grid-header">火</div><div class="grid-header">水</div><div class="grid-header">木</div><div class="grid-header">金</div>
             
             <!-- 1限 -->
             <div class="grid-cell grid-period">1</div>
-            <div class="grid-cell" onclick="showDetail('月', 1, '数学', '宿題提出')">数学</div>
-            <div class="grid-cell" onclick="showDetail('火', 1, '英語', 'なし')">英語</div>
-            <div class="grid-cell" onclick="showDetail('水', 1, '社会', 'ノート')">社会</div>
-            <div class="grid-cell" onclick="showDetail('木', 1, '国語', '教科書、ノート')">国語</div>
-            <div class="grid-cell" onclick="showDetail('金', 1, '理科', 'なし')">理科</div>
+            <div class="grid-cell" onclick="showDetail('月', 1, '数学', '宿題提出があります。', 'timetable')">数学</div>
+            <div class="grid-cell" onclick="showDetail('火', 1, '英語', '特になし', 'timetable')">英語</div>
+            <div class="grid-cell" onclick="showDetail('水', 1, '社会', 'ノート提出の準備', 'timetable')">社会</div>
+            <div class="grid-cell" onclick="showDetail('木', 1, '国語', '教科書、ノート（宿題提出あり）', 'timetable')">国語</div>
+            <div class="grid-cell" onclick="showDetail('金', 1, '理科', 'なし', 'timetable')">理科</div>
 
             <!-- 2限 -->
             <div class="grid-cell grid-period">2</div>
-            <div class="grid-cell" onclick="showDetail('月', 2, '国語', 'なし')">国語</div>
-            <div class="grid-cell has-change" onclick="showDetail('火', 2, '音楽', '音楽室に変更（アルトリコーダー持参）')">音楽</div>
-            <div class="grid-cell" onclick="showDetail('水', 2, '数学', 'なし')">数学</div>
-            <div class="grid-cell" onclick="showDetail('木', 2, '数学', 'コンパス、定規')">数学</div>
-            <div class="grid-cell" onclick="showDetail('金', 2, '英語', 'なし')">英語</div>
+            <div class="grid-cell" onclick="showDetail('月', 2, '国語', 'なし', 'timetable')">国語</div>
+            <div class="grid-cell has-change" onclick="showDetail('火', 2, '音楽', '【教室変更あり】自習から「第1音楽室」に変更になりました。アルトリコーダーを持参してください。', 'timetable')">音楽</div>
+            <div class="grid-cell" onclick="showDetail('水', 2, '数学', 'なし', 'timetable')">数学</div>
+            <div class="grid-cell" onclick="showDetail('木', 2, '数学', 'コンパス、定規を持ってくること', 'timetable')">数学</div>
+            <div class="grid-cell" onclick="showDetail('金', 2, '英語', 'なし', 'timetable')">英語</div>
 
             <!-- 3限 -->
             <div class="grid-cell grid-period">3</div>
-            <div class="grid-cell" onclick="showDetail('月', 3, '英語', 'なし')">英語</div>
-            <div class="grid-cell" onclick="showDetail('火', 3, '理科', 'ファイル')">理科</div>
-            <div class="grid-cell" onclick="showDetail('水', 3, '体育', '体育館シューズ')">体育</div>
-            <div class="grid-cell" onclick="showDetail('木', 3, '体育', '体操服（外履き）')">体育</div>
-            <div class="grid-cell" onclick="showDetail('金', 3, '社会', '地図帳')">社会</div>
-
-            <!-- 4限 -->
-            <div class="grid-cell grid-period">4</div>
-            <div class="grid-cell" onclick="showDetail('月', 4, '社会', 'なし')">社会</div>
-            <div class="grid-cell" onclick="showDetail('火', 4, '国語', 'なし')">国語</div>
-            <div class="grid-cell" onclick="showDetail('水', 4, '英語', 'なし')">英語</div>
-            <div class="grid-cell" onclick="showDetail('木', 4, '英語', '単語帳')">英語</div>
-            <div class="grid-cell" onclick="showDetail('金', 4, '国語', 'なし')">国語</div>
-
-            <!-- 5限 -->
-            <div class="grid-cell grid-period">5</div>
-            <div class="grid-cell" onclick="showDetail('月', 5, '理科', 'なし')">理科</div>
-            <div class="grid-cell" onclick="showDetail('火', 5, '技家', '裁縫セット')">技家</div>
