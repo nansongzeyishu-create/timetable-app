@@ -2,142 +2,292 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>時間割アプリ</title>
-    <!-- Tailwind CSS & FontAwesome -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生徒用時間割アプリ</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap');
-        body {
-            font-family: 'M PLUS Rounded 1c', sans-serif;
-            background-color: #F0F4F8;
-            color: #333333;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --accent-color: #e74c3c;
         }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .theme-blue { background-color: #EBF5FF; border-color: #BBE1FA; }
-        .theme-green { background-color: #E6FFFA; border-color: #B2F5EA; }
-        .theme-orange { background-color: #FFF5F5; border-color: #FED7D7; }
-        .theme-purple { background-color: #FAF5FF; border-color: #E9D8FD; }
-        .theme-pink { background-color: #FFF0F5; border-color: #FED7E2; }
-        .theme-yellow { background-color: #FEFCBF; border-color: #FAF089; }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #cbd5e1;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* スマホサイズのコンテナ */
+        .phone-container {
+            width: 375px;
+            height: 700px;
+            background-color: var(--bg-color);
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            padding-bottom: 80px; /* ナビゲーションバーのスペース */
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--text-color);
+            margin-top: 10px;
+        }
+
+        /* 共通ボタン */
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        /* 1. ログイン画面 */
+        .login-box {
+            margin: auto 0;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        /* 2. ホーム（今日の時間割） */
+        .date-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        .today-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .today-item {
+            background: var(--card-color);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .period-num {
+            font-weight: bold;
+            font-size: 18px;
+            color: var(--primary-color);
+            width: 40px;
+        }
+
+        /* 3. 週間時間割（グリッド） */
+        .timetable-grid {
+            display: grid;
+            grid-template-columns: 40px repeat(5, 1fr);
+            gap: 4px;
+            background-color: #ddd;
+            padding: 4px;
+            border-radius: 8px;
+        }
+        .grid-header {
+            background-color: #eee;
+            font-weight: bold;
+            text-align: center;
+            padding: 6px 0;
+            font-size: 12px;
+        }
+        .grid-cell {
+            background-color: white;
+            min-height: 55px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .grid-cell.has-change {
+            border: 2px solid var(--accent-color);
+            position: relative;
+        }
+        .grid-cell.has-change::after {
+            content: '●';
+            color: var(--accent-color);
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 8px;
+        }
+        .grid-period {
+            background-color: #eee;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 4. 詳細画面 */
+        .detail-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .info-content {
+            font-size: 16px;
+            margin-top: 5px;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        /* 下部ナビゲーションバー */
+        .nav-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 65px;
+            background-color: white;
+            border-top: 1px solid #eee;
+            display: none;
+            justify-content: space-around;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .nav-item {
+            font-size: 12px;
+            color: #888;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .nav-item.active {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        .nav-icon {
+            font-size: 20px;
+        }
     </style>
 </head>
-<body class="bg-slate-100 flex justify-center items-center min-h-screen">
+<body>
 
-    <div class="w-full max-w-md h-screen sm:h-[844px] sm:rounded-[40px] sm:shadow-2xl bg-slate-50 flex flex-col relative overflow-hidden border border-slate-200">
+<div class="phone-container">
 
-        <!-- ログイン画面（未ログイン時に表示） -->
-        <div id="auth-screen" class="absolute inset-0 bg-slate-50 z-50 flex flex-col justify-center px-6 hidden">
-            <div class="text-center mb-8">
-                <span class="text-5xl">📚</span>
-                <h1 class="text-2xl font-extrabold text-slate-700 mt-3">時間割アプリ</h1>
-                <p id="auth-mode-desc" class="text-xs text-slate-400 mt-1">ログインしてデータをクラウドに同期しよう</p>
+    <!-- 1. ログイン画面 -->
+    <div id="screen-login" class="screen active">
+        <div class="login-box">
+            <h2>時間割アプリ</h2>
+            <p style="color: #666; margin-bottom: 30px;">クラス名 or IDを入力してください</p>
+            <div class="input-group">
+                <input type="text" id="class-input" placeholder="例: 2年A組" value="2年A組">
             </div>
+            <button class="btn" onclick="login()">ログイン</button>
+        </div>
+    </div>
+
+    <!-- 2. ホーム画面（今日の時間割） -->
+    <div id="screen-home" class="screen">
+        <h2>ホーム</h2>
+        <div class="date-header" id="today-date">2026年11月5日 (木)</div>
+        <p style="margin-top:0; color:#666;">今日の時間割</p>
+        <div class="today-list">
+            <div class="today-item" onclick="showDetail('木', 1, '国語', '教科書、ノート（宿題あり）')"><div class="period-num">1</div><div>国語</div></div>
+            <div class="today-item" onclick="showDetail('木', 2, '数学', 'コンパス、定規')"><div class="period-num">2</div><div>数学</div></div>
+            <div class="today-item" onclick="showDetail('木', 3, '体育', '体操服（外履き）')"><div class="period-num">3</div><div>体育</div></div>
+            <div class="today-item" onclick="showDetail('木', 4, '英語', '単語帳')"><div class="period-num">4</div><div>英語</div></div>
+            <div class="today-item" onclick="showDetail('木', 5, '理科', '実験レポート原稿')"><div class="period-num">5</div><div>理科</div></div>
+        </div>
+    </div>
+
+    <!-- 3. 時間割一覧画面（週間） -->
+    <div id="screen-timetable" class="screen">
+        <h2>週間時間割</h2>
+        <p style="text-align: center; color: var(--accent-color); font-size: 12px; margin-top: -5px;">※赤枠は変更あり（タップで詳細）</p>
+        <div class="timetable-grid">
+            <!-- ヘッダー行 -->
+            <div class="grid-header">限</div>
+            <div class="grid-header">月</div><div class="grid-header">火</div><div class="grid-header">水</div><div class="grid-header">木</div><div class="grid-header">金</div>
             
-            <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-slate-400 mb-1 block">メールアドレス</label>
-                    <input type="email" id="auth-email" placeholder="example@email.com" class="w-full bg-slate-100 rounded-xl px-4 py-3 text-sm border-none outline-none font-medium">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-400 mb-1 block">パスワード</label>
-                    <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-slate-100 rounded-xl px-4 py-3 text-sm border-none outline-none font-medium">
-                </div>
-                <div id="auth-error" class="text-xs text-red-500 font-bold hidden text-center"></div>
-                
-                <button onclick="handleAuth()" id="auth-submit-btn" class="w-full bg-blue-500 text-white font-bold py-3.5 rounded-xl text-sm shadow-md shadow-blue-500/20">ログイン</button>
-                
-                <div class="text-center pt-2">
-                    <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-xs text-blue-500 font-bold hover:underline">アカウントをお持ちでない方は新規登録</button>
-                </div>
-            </div>
-        </div>
+            <!-- 1限 -->
+            <div class="grid-cell grid-period">1</div>
+            <div class="grid-cell" onclick="showDetail('月', 1, '数学', '宿題提出')">数学</div>
+            <div class="grid-cell" onclick="showDetail('火', 1, '英語', 'なし')">英語</div>
+            <div class="grid-cell" onclick="showDetail('水', 1, '社会', 'ノート')">社会</div>
+            <div class="grid-cell" onclick="showDetail('木', 1, '国語', '教科書、ノート')">国語</div>
+            <div class="grid-cell" onclick="showDetail('金', 1, '理科', 'なし')">理科</div>
 
-        <!-- メイン画面 -->
-        <main id="main-content" class="flex-1 overflow-y-auto pb-24 no-scrollbar">
-            <!-- JavaScriptで動的生成 -->
-        </main>
+            <!-- 2限 -->
+            <div class="grid-cell grid-period">2</div>
+            <div class="grid-cell" onclick="showDetail('月', 2, '国語', 'なし')">国語</div>
+            <div class="grid-cell has-change" onclick="showDetail('火', 2, '音楽', '音楽室に変更（アルトリコーダー持参）')">音楽</div>
+            <div class="grid-cell" onclick="showDetail('水', 2, '数学', 'なし')">数学</div>
+            <div class="grid-cell" onclick="showDetail('木', 2, '数学', 'コンパス、定規')">数学</div>
+            <div class="grid-cell" onclick="showDetail('金', 2, '英語', 'なし')">英語</div>
 
-        <nav id="bottom-nav" class="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-200 px-4 py-2 flex justify-around items-center z-40 shadow-lg hidden">
-            <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center text-blue-500 transition-all">
-                <i class="fa-solid fa-house text-xl mb-1"></i>
-                <span class="text-[11px] font-bold">ホーム</span>
-            </button>
-            <button onclick="switchTab('timetable')" id="nav-timetable" class="flex flex-col items-center text-slate-400 transition-all">
-                <i class="fa-solid fa-calendar-days text-xl mb-1"></i>
-                <span class="text-[11px] font-bold">時間割</span>
-            </button>
-            <button onclick="switchTab('tasks')" id="nav-tasks" class="flex flex-col items-center text-slate-400 transition-all">
-                <i class="fa-solid fa-square-check text-xl mb-1"></i>
-                <span class="text-[11px] font-bold">課題</span>
-            </button>
-            <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center text-slate-400 transition-all">
-                <i class="fa-solid fa-table-cells text-xl mb-1"></i>
-                <span class="text-[11px] font-bold">その他</span>
-            </button>
-        </nav>
-    </div>
+            <!-- 3限 -->
+            <div class="grid-cell grid-period">3</div>
+            <div class="grid-cell" onclick="showDetail('月', 3, '英語', 'なし')">英語</div>
+            <div class="grid-cell" onclick="showDetail('火', 3, '理科', 'ファイル')">理科</div>
+            <div class="grid-cell" onclick="showDetail('水', 3, '体育', '体育館シューズ')">体育</div>
+            <div class="grid-cell" onclick="showDetail('木', 3, '体育', '体操服（外履き）')">体育</div>
+            <div class="grid-cell" onclick="showDetail('金', 3, '社会', '地図帳')">社会</div>
 
-    <!-- 授業編集モーダル -->
-    <div id="lesson-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-pen-to-square text-blue-500"></i> 授業の編集
-            </h3>
-            <input type="hidden" id="modal-day">
-            <input type="hidden" id="modal-period">
-            <div class="space-y-3">
-                <div>
-                    <label class="text-xs font-bold text-slate-500 mb-1 block">教科名</label>
-                    <input type="text" id="modal-subject" class="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold border-none outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 mb-1 block">担当教師</label>
-                    <input type="text" id="modal-teacher" class="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm border-none outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 mb-1 block">教室・場所</label>
-                    <input type="text" id="modal-room" class="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm border-none outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-500 mb-1 block">テーマカラー</label>
-                    <select id="modal-color" class="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm border-none outline-none">
-                        <option value="blue">ブルー（水色）</option>
-                        <option value="green">グリーン（ミント）</option>
-                        <option value="orange">オレンジ（ピンク）</option>
-                        <option value="purple">パープル（薄紫）</option>
-                        <option value="yellow">イエロー（黄色）</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex gap-2 mt-6">
-                <button onclick="closeModal('lesson-modal')" class="flex-1 bg-slate-200 text-slate-600 font-bold py-3 rounded-xl text-sm">キャンセル</button>
-                <button onclick="saveLesson()" class="flex-1 bg-blue-500 text-white font-bold py-3 rounded-xl text-sm shadow-md">保存する</button>
-            </div>
-        </div>
-    </div>
+            <!-- 4限 -->
+            <div class="grid-cell grid-period">4</div>
+            <div class="grid-cell" onclick="showDetail('月', 4, '社会', 'なし')">社会</div>
+            <div class="grid-cell" onclick="showDetail('火', 4, '国語', 'なし')">国語</div>
+            <div class="grid-cell" onclick="showDetail('水', 4, '英語', 'なし')">英語</div>
+            <div class="grid-cell" onclick="showDetail('木', 4, '英語', '単語帳')">英語</div>
+            <div class="grid-cell" onclick="showDetail('金', 4, '国語', 'なし')">国語</div>
 
-    <!-- 持ち物編集モーダル -->
-    <div id="items-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
-            <h3 class="text-lg font-bold text-slate-700 mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-list-check text-blue-500"></i> 今日の持ち物 編集
-            </h3>
-            <p class="text-xs text-slate-400 mb-4">持ち物を追加または削除できます</p>
-            <div class="flex gap-2 mb-4">
-                <input type="text" id="new-item-input" placeholder="新しい持ち物を入力..." class="flex-1 bg-slate-100 rounded-xl px-3 py-2 text-sm border-none outline-none">
-                <button onclick="addQuickItem()" class="bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold">追加</button>
-            </div>
-            <div id="modal-items-list" class="space-y-2 max-h-48 overflow-y-auto mb-4"></div>
-            <button onclick="closeModal('items-modal'); renderApp();" class="w-full bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">閉じる</button>
-        </div>
-    </div>
-
-    <script type="module" src="script.js"></script>
-</body>
-</html>
+            <!-- 5限 -->
+            <div class="grid-cell grid-period">5</div>
+            <div class="grid-cell" onclick="showDetail('月', 5, '理科', 'なし')">理科</div>
+            <div class="grid-cell" onclick="showDetail('火', 5, '技家', '裁縫セット')">技家</div>
