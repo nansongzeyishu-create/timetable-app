@@ -1,303 +1,1087 @@
-
-```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>生徒用時間割アプリ</title>
+    <title>生徒用時間割・スケジュール管理</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root {
-            --primary-color: #4a90e2;
-            --bg-color: #f5f7fa;
-            --card-color: #ffffff;
-            --text-color: #333333;
-            --accent-color: #e74c3c;
+        .modal {
+            transition: opacity 0.25s ease;
         }
-
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #cbd5e1;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-
-        /* スマホサイズのコンテナ */
-        .phone-container {
-            width: 375px;
-            height: 700px;
-            background-color: var(--bg-color);
-            border-radius: 30px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .screen {
-            display: none;
-            flex: 1;
-            flex-direction: column;
-            padding: 20px;
-            box-sizing: border-box;
-            overflow-y: auto;
-            padding-bottom: 80px;
-        }
-
-        .screen.active {
-            display: flex;
-        }
-
-        h2 {
-            text-align: center;
-            color: var(--text-color);
-            margin-top: 10px;
-        }
-
-        /* 共通ボタン */
-        .btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 15px;
-        }
-
-        /* 1. ログイン画面 */
-        .login-box {
-            margin: auto 0;
-            text-align: center;
-        }
-        .input-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-
-        /* 2. ホーム（今日の時間割） */
-        .date-header {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: var(--primary-color);
-        }
-        .today-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .today-item {
-            background: var(--card-color);
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .today-item:hover {
-            background: #f0f4f8;
-        }
-        .period-num {
-            font-weight: bold;
-            font-size: 18px;
-            color: var(--primary-color);
-            width: 40px;
-        }
-
-        /* 3. 週間時間割（グリッド） */
-        .timetable-grid {
-            display: grid;
-            grid-template-columns: 40px repeat(5, 1fr);
-            gap: 4px;
-            background-color: #ddd;
-            padding: 4px;
-            border-radius: 8px;
-        }
-        .grid-header {
-            background-color: #eee;
-            font-weight: bold;
-            text-align: center;
-            padding: 6px 0;
-            font-size: 12px;
-        }
-        .grid-cell {
-            background-color: white;
-            min-height: 55px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            font-size: 11px;
-            cursor: pointer;
-            border-radius: 4px;
-            text-align: center;
-            transition: background 0.2s;
-        }
-        .grid-cell:hover {
-            background: #f0f4f8;
-        }
-        
-        /* 変更ありの赤枠・点滅アニメーション */
-        @keyframes blink-border {
-            0% { border-color: var(--accent-color); box-shadow: 0 0 2px var(--accent-color); }
-            50% { border-color: transparent; box-shadow: none; }
-            100% { border-color: var(--accent-color); box-shadow: 0 0 2px var(--accent-color); }
-        }
-        .grid-cell.has-change {
-            border: 2px solid var(--accent-color);
-            animation: blink-border 1.5s infinite;
-            position: relative;
-            box-sizing: border-box;
-            background-color: #fff5f5;
-        }
-        .grid-cell.has-change::after {
-            content: '●';
-            color: var(--accent-color);
-            position: absolute;
-            top: 1px;
-            right: 2px;
-            font-size: 8px;
-        }
-        
-        .grid-period {
-            background-color: #eee;
-            font-weight: bold;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: default;
-        }
-        .grid-period:hover {
-            background: #eee;
-        }
-
-        /* 4. 詳細画面 */
-        .detail-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-        .info-label {
-            font-weight: bold;
-            color: #666;
-            margin-top: 15px;
-            font-size: 14px;
-        }
-        .info-content {
-            font-size: 16px;
-            margin-top: 5px;
-            background: #f9f9f9;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        /* 下部ナビゲーションバー */
-        .nav-bar {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 65px;
-            background-color: white;
-            border-top: 1px solid #eee;
-            display: none;
-            justify-content: space-around;
-            align-items: center;
-            box-sizing: border-box;
-        }
-        .nav-item {
-            font-size: 12px;
-            color: #888;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            width: 50%;
-            height: 100%;
-            justify-content: center;
-        }
-        .nav-item.active {
-            color: var(--primary-color);
-            font-weight: bold;
-        }
-        .nav-icon {
-            font-size: 22px;
+        body.modal-active {
+            overflow-x: hidden;
+            overflow-y: hidden;
         }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col pb-20 md:pb-0 md:pl-64">
 
-<div class="phone-container">
-
-    <!-- 1. ログイン画面 -->
-    <div id="screen-login" class="screen active">
-        <div class="login-box">
-            <h2>時間割アプリ</h2>
-            <p style="color: #666; margin-bottom: 30px;">クラス名 or IDを入力してください</p>
-            <div class="input-group">
-                <input type="text" id="class-input" placeholder="例: 2年A組" value="2年A組">
+    <!-- Auth View (Hidden when logged in) -->
+    <div id="authView" class="fixed inset-0 z-50 bg-slate-900 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 md:p-8">
+            <div class="text-center mb-6">
+                <div class="bg-indigo-100 text-indigo-600 p-3 rounded-full inline-block mb-3">
+                    <i data-lucide="book-open" class="w-8 h-8"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800" id="authTitle">ログイン</h1>
+                <p class="text-slate-500 text-sm mt-1" id="authSubtitle">メールアドレスを入力してログインしてください</p>
             </div>
-            <button class="btn" onclick="login()">ログイン</button>
+
+            <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">メールアドレス</label>
+                    <input type="email" id="authEmail" required class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="student@example.com">
+                </div>
+                <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg shadow-md transition duration-200">
+                    ログイン
+                </button>
+            </form>
+
+            <div class="mt-6 text-center border-t pt-4">
+                <button type="button" onclick="toggleAuthMode()" id="toggleAuthBtn" class="text-sm text-indigo-600 hover:underline">
+                    アカウントをお持ちでない方はこちら（新規登録）
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- 2. ホーム画面（今日の時間割） -->
-    <div id="screen-home" class="screen">
-        <h2>ホーム</h2>
-        <div class="date-header" id="today-date">2026年11月5日 (木)</div>
-        <p style="margin-top:0; color:#666;">今日の時間割</p>
-        <div class="today-list">
-            <div class="today-item" onclick="showDetail('木', 1, '国語', '教科書、ノート（宿題提出あり）', 'home')"><div class="period-num">1</div><div>国語</div></div>
-            <div class="today-item" onclick="showDetail('木', 2, '数学', 'コンパス、定規', 'home')"><div class="period-num">2</div><div>数学</div></div>
-            <div class="today-item" onclick="showDetail('木', 3, '体育', '体操服（外履き用シューズ）', 'home')"><div class="period-num">3</div><div>体育</div></div>
-            <div class="today-item" onclick="showDetail('木', 4, '英語', '単語帳、ワークブック', 'home')"><div class="period-num">4</div><div>英語</div></div>
-            <div class="today-item" onclick="showDetail('木', 5, '理科', '実験レポートの原稿用紙', 'home')"><div class="period-num">5</div><div>理科</div></div>
+    <!-- Sidebar / Navigation (Desktop) -->
+    <aside class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 fixed inset-y-0 left-0 z-30">
+        <div class="p-6 border-b border-slate-100 flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-lg">
+                <i data-lucide="calendar" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h2 class="font-bold text-slate-800">スクール手帳</h2>
+                <span class="text-xs text-indigo-600 font-medium truncate max-w-[140px] block" id="userEmailBadge"></span>
+            </div>
+        </div>
+        <nav class="flex-1 p-4 space-y-1">
+            <button onclick="switchTab('home')" id="nav-home-dt" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-indigo-600 bg-indigo-50 transition">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span>ホーム (今週の時間割)</span>
+            </button>
+            <button onclick="switchTab('calendar')" id="nav-calendar-dt" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition">
+                <i data-lucide="calendar-days" class="w-5 h-5"></i>
+                <span>カレンダー</span>
+            </button>
+            <button onclick="switchTab('settings')" id="nav-settings-dt" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                <span>設定</span>
+            </button>
+        </nav>
+        <div class="p-4 border-t border-slate-100">
+            <button onclick="requestLogout()" class="w-full flex items-center justify-center space-x-2 text-rose-600 hover:bg-rose-50 p-2 rounded-lg text-sm font-medium transition">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+                <span>ログアウト</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">
+        <!-- HEADER -->
+        <header class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800" id="pageTitle">ホーム (今週の時間割)</h1>
+                <p class="text-slate-500 text-sm" id="currentDateStr"></p>
+            </div>
+            <button onclick="openMasterTimetableModal()" class="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-sm text-sm font-medium transition">
+                <i data-lucide="edit-3" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">基本時間割の設定</span>
+            </button>
+        </header>
+
+        <!-- TAB CONTENT: HOME (WEEKLY TIMETABLE) -->
+        <section id="tab-home" class="space-y-6">
+            <!-- Weekly Timetable Grid -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                        <i data-lucide="clock" class="w-5 h-5 text-indigo-500"></i> 今週の時間割
+                    </h2>
+                    <span class="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-full">自動更新</span>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <div class="min-w-[800px] grid grid-cols-8 divide-x divide-y divide-slate-200 text-center text-sm">
+                        <!-- Header Row -->
+                        <div class="bg-slate-100 p-3 font-semibold text-slate-600 flex items-center justify-center">時限</div>
+                        <div class="bg-slate-100 p-3 font-semibold text-slate-700" id="day-head-1">月</div>
+                        <div class="bg-slate-100 p-3 font-semibold text-slate-700" id="day-head-2">火</div>
+                        <div class="bg-slate-100 p-3 font-semibold text-slate-700" id="day-head-3">水</div>
+                        <div class="bg-slate-100 p-3 font-semibold text-slate-700" id="day-head-4">木</div>
+                        <div class="bg-slate-100 p-3 font-semibold text-slate-700" id="day-head-5">金</div>
+                        <div class="bg-blue-50 p-3 font-semibold text-blue-700" id="day-head-6">土</div>
+                        <div class="bg-rose-50 p-3 font-semibold text-rose-700" id="day-head-0">日</div>
+
+                        <!-- 1 Period -->
+                        <div class="p-3 font-bold bg-slate-50 text-slate-500 flex items-center justify-center">1限</div>
+                        <div id="cell-1-1" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-2-1" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-3-1" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-4-1" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-5-1" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-6-1" class="p-3 min-h-[70px] flex flex-col justify-center bg-blue-50/30"></div>
+                        <div id="cell-0-1" class="p-3 min-h-[70px] flex flex-col justify-center bg-rose-50/30"></div>
+
+                        <!-- 2 Period -->
+                        <div class="p-3 font-bold bg-slate-50 text-slate-500 flex items-center justify-center">2限</div>
+                        <div id="cell-1-2" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-2-2" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-3-2" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-4-2" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-5-2" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-6-2" class="p-3 min-h-[70px] flex flex-col justify-center bg-blue-50/30"></div>
+                        <div id="cell-0-2" class="p-3 min-h-[70px] flex flex-col justify-center bg-rose-50/30"></div>
+
+                        <!-- 3 Period -->
+                        <div class="p-3 font-bold bg-slate-50 text-slate-500 flex items-center justify-center">3限</div>
+                        <div id="cell-1-3" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-2-3" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-3-3" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-4-3" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-5-3" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-6-3" class="p-3 min-h-[70px] flex flex-col justify-center bg-blue-50/30"></div>
+                        <div id="cell-0-3" class="p-3 min-h-[70px] flex flex-col justify-center bg-rose-50/30"></div>
+
+                        <!-- 4 Period -->
+                        <div class="p-3 font-bold bg-slate-50 text-slate-500 flex items-center justify-center">4限</div>
+                        <div id="cell-1-4" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-2-4" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-3-4" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-4-4" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-5-4" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-6-4" class="p-3 min-h-[70px] flex flex-col justify-center bg-blue-50/30"></div>
+                        <div id="cell-0-4" class="p-3 min-h-[70px] flex flex-col justify-center bg-rose-50/30"></div>
+
+                        <!-- 5 Period -->
+                        <div class="p-3 font-bold bg-slate-50 text-slate-500 flex items-center justify-center">5限</div>
+                        <div id="cell-1-5" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-2-5" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-3-5" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-4-5" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-5-5" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-6-5" class="p-3 min-h-[70px] flex flex-col justify-center bg-blue-50/30"></div>
+                        <div id="cell-0-5" class="p-3 min-h-[70px] flex flex-col justify-center bg-rose-50/30"></div>
+
+                        <!-- 6 Period -->
+                        <div class="p-3 font-bold bg-slate-50 text-slate-500 flex items-center justify-center">6限</div>
+                        <div id="cell-1-6" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-2-6" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-3-6" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-4-6" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-5-6" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-6-6" class="p-3 min-h-[70px] flex flex-col justify-center bg-blue-50/30"></div>
+                        <div id="cell-0-6" class="p-3 min-h-[70px] flex flex-col justify-center bg-rose-50/30"></div>
+
+                        <!-- 7 Period (Tuesday Special) -->
+                        <div class="p-3 font-bold bg-amber-50 text-amber-700 flex items-center justify-center">7限</div>
+                        <div id="cell-1-7" class="p-3 min-h-[70px] bg-slate-100/50 text-slate-400 flex items-center justify-center text-xs">なし</div>
+                        <div id="cell-2-7" class="p-3 min-h-[70px] flex flex-col justify-center"></div>
+                        <div id="cell-3-7" class="p-3 min-h-[70px] bg-slate-100/50 text-slate-400 flex items-center justify-center text-xs">なし</div>
+                        <div id="cell-4-7" class="p-3 min-h-[70px] bg-slate-100/50 text-slate-400 flex items-center justify-center text-xs">なし</div>
+                        <div id="cell-5-7" class="p-3 min-h-[70px] bg-slate-100/50 text-slate-400 flex items-center justify-center text-xs">なし</div>
+                        <div id="cell-6-7" class="p-3 min-h-[70px] bg-slate-100/50 text-slate-400 flex items-center justify-center text-xs">なし</div>
+                        <div id="cell-0-7" class="p-3 min-h-[70px] bg-slate-100/50 text-slate-400 flex items-center justify-center text-xs">なし</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Today Belongings -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-3">
+                        <span class="p-1.5 bg-purple-100 text-purple-600 rounded-lg"><i data-lucide="briefcase" class="w-4 h-4"></i></span>
+                        本日の持ち物
+                    </h3>
+                    <ul id="todayBelongingsList" class="space-y-2 text-sm text-slate-600">
+                        <li class="text-slate-400 italic">本日の持ち物はありません</li>
+                    </ul>
+                </div>
+
+                <!-- Upcoming Assignments -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-800 flex items-center gap-2 mb-3">
+                        <span class="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg"><i data-lucide="file-check-2" class="w-4 h-4"></i></span>
+                        近日提出の課題 (1週間以内)
+                    </h3>
+                    <ul id="upcomingAssignmentsList" class="space-y-2 text-sm text-slate-600">
+                        <li class="text-slate-400 italic">近日提出が必要な課題はありません</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB CONTENT: CALENDAR -->
+        <section id="tab-calendar" class="hidden space-y-6">
+            <!-- Calendar Navigation & Controls -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center space-x-3">
+                    <button onclick="changeMonth(-1)" class="p-2 rounded-lg border hover:bg-slate-50 text-slate-600">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </button>
+                    <h2 id="calendarMonthLabel" class="text-xl font-bold text-slate-800 min-w-[140px] text-center">2026年 10月</h2>
+                    <button onclick="changeMonth(1)" class="p-2 rounded-lg border hover:bg-slate-50 text-slate-600">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="month" id="calendarMonthPicker" onchange="onMonthPickerChange(event)" class="px-3 py-1.5 border rounded-lg text-sm text-slate-600 focus:outline-none">
+                    <button onclick="goToToday()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-lg font-medium">今日</button>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="flex flex-wrap gap-4 text-xs font-semibold px-2">
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500"></span> 🚨 時間割変更</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-purple-500"></span> 🎒 持ち物</span>
+                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> 📝 課題提出日</span>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold py-3 text-slate-600">
+                    <span class="text-rose-500">日</span>
+                    <span>月</span>
+                    <span>火</span>
+                    <span>水</span>
+                    <span>木</span>
+                    <span>金</span>
+                    <span class="text-blue-500">土</span>
+                </div>
+                <div id="calendarDaysGrid" class="grid grid-cols-7 divide-x divide-y divide-slate-100 min-h-[480px]">
+                    <!-- Dynamically populated -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB CONTENT: SETTINGS -->
+        <section id="tab-settings" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-6">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg border-b pb-2 mb-4">アカウント設定</h3>
+                    <p class="text-sm text-slate-600">ログイン中: <span id="settingsUserEmail" class="font-bold text-indigo-600"></span></p>
+                </div>
+
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg border-b pb-2 mb-4">データ管理</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                            <div>
+                                <h4 class="font-semibold text-slate-700 text-sm">基本時間割のリセット</h4>
+                                <p class="text-xs text-slate-500">設定した1週間の時間割をすべて消去します</p>
+                            </div>
+                            <button onclick="confirmResetMasterTimetable()" class="px-4 py-2 bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold rounded-lg text-xs transition">
+                                オールクリア
+                            </button>
+                        </div>
+
+                        <div class="flex items-center justify-between p-4 bg-rose-50 rounded-xl">
+                            <div>
+                                <h4 class="font-semibold text-rose-800 text-sm">全アプリデータ初期化</h4>
+                                <p class="text-xs text-rose-600">時間割、カレンダーの予定、持ち物、課題をすべて削除します</p>
+                            </div>
+                            <button onclick="confirmResetAllData()" class="px-4 py-2 bg-rose-600 text-white hover:bg-rose-700 font-bold rounded-lg text-xs transition">
+                                初期化する
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 flex justify-around py-2 shadow-lg">
+        <button onclick="switchTab('home')" id="nav-home-mb" class="flex flex-col items-center space-y-1 text-indigo-600">
+            <i data-lucide="home" class="w-5 h-5"></i>
+            <span class="text-[10px] font-medium">ホーム</span>
+        </button>
+        <button onclick="switchTab('calendar')" id="nav-calendar-mb" class="flex flex-col items-center space-y-1 text-slate-500">
+            <i data-lucide="calendar-days" class="w-5 h-5"></i>
+            <span class="text-[10px] font-medium">カレンダー</span>
+        </button>
+        <button onclick="switchTab('settings')" id="nav-settings-mb" class="flex flex-col items-center space-y-1 text-slate-500">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+            <span class="text-[10px] font-medium">設定</span>
+        </button>
+    </nav>
+
+    <!-- MODAL 1: Master Timetable Edit -->
+    <div id="masterTimetableModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] flex flex-col">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-lg">基本時間割の編集</h3>
+                <button onclick="closeMasterTimetableModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">曜日</label>
+                        <select id="mtDaySelect" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <option value="1">月曜日</option>
+                            <option value="2">火曜日</option>
+                            <option value="3">水曜日</option>
+                            <option value="4">木曜日</option>
+                            <option value="5">金曜日</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">時限</label>
+                        <select id="mtPeriodSelect" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            <option value="1">1限</option>
+                            <option value="2">2限</option>
+                            <option value="3">3限</option>
+                            <option value="4">4限</option>
+                            <option value="5">5限</option>
+                            <option value="6">6限</option>
+                            <option value="7">7限 (火曜専用)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">教科名</label>
+                    <input type="text" id="mtSubjectInput" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="例: 数学I">
+                </div>
+                <div class="pt-2 flex justify-between">
+                    <button onclick="confirmResetMasterTimetable()" class="px-4 py-2 bg-rose-100 text-rose-700 hover:bg-rose-200 text-xs font-bold rounded-lg transition">
+                        時間割を全消去
+                    </button>
+                    <button onclick="saveMasterTimetableCell()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg shadow-sm transition">
+                        保存する
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- 3. 時間割一覧画面（週間） -->
-    <div id="screen-timetable" class="screen">
-        <h2>週間時間割</h2>
-        <p style="text-align: center; color: var(--accent-color); font-size: 11px; margin-top: -5px;">※赤枠点滅は変更あり（タップで確認）</p>
-        <div class="timetable-grid">
-            <!-- 曜日ヘッダー -->
-            <div class="grid-header">限</div>
-            <div class="grid-header">月</div><div class="grid-header">火</div><div class="grid-header">水</div><div class="grid-header">木</div><div class="grid-header">金</div>
+    <!-- MODAL 2: Day Detail & Edit (Calendar Day Click) -->
+    <div id="dayDetailModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-xl max-w-xl w-full max-h-[90vh] flex flex-col">
+            <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                <div>
+                    <h3 id="dayDetailModalTitle" class="font-bold text-slate-800 text-lg">2026年10月15日</h3>
+                    <p id="dayDetailModalSubtitle" class="text-xs text-slate-500"></p>
+                </div>
+                <button onclick="closeDayDetailModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
             
-            <!-- 1限 -->
-            <div class="grid-cell grid-period">1</div>
-            <div class="grid-cell" onclick="showDetail('月', 1, '数学', '宿題提出があります。', 'timetable')">数学</div>
-            <div class="grid-cell" onclick="showDetail('火', 1, '英語', '特になし', 'timetable')">英語</div>
-            <div class="grid-cell" onclick="showDetail('水', 1, '社会', 'ノート提出の準備', 'timetable')">社会</div>
-            <div class="grid-cell" onclick="showDetail('木', 1, '国語', '教科書、ノート（宿題提出あり）', 'timetable')">国語</div>
-            <div class="grid-cell" onclick="showDetail('金', 1, '理科', 'なし', 'timetable')">理科</div>
+            <div class="p-6 overflow-y-auto space-y-6 flex-1">
+                <!-- Registered Items for this Day -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">この日の予定・連絡</h4>
+                    <div id="dayEventsList" class="space-y-2">
+                        <!-- Items rendered dynamically -->
+                    </div>
+                </div>
 
-            <!-- 2限 -->
-            <div class="grid-cell grid-period">2</div>
-            <div class="grid-cell" onclick="showDetail('月', 2, '国語', 'なし', 'timetable')">国語</div>
-            <div class="grid-cell has-change" onclick="showDetail('火', 2, '音楽', '【教室変更あり】自習から「第1音楽室」に変更になりました。アルトリコーダーを持参してください。', 'timetable')">音楽</div>
-            <div class="grid-cell" onclick="showDetail('水', 2, '数学', 'なし', 'timetable')">数学</div>
-            <div class="grid-cell" onclick="showDetail('木', 2, '数学', 'コンパス、定規を持ってくること', 'timetable')">数学</div>
-            <div class="grid-cell" onclick="showDetail('金', 2, '英語', 'なし', 'timetable')">英語</div>
+                <!-- Add Form -->
+                <div class="border-t pt-4">
+                    <h4 class="text-sm font-bold text-slate-700 mb-3">新しい項目を追加</h4>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">種類</label>
+                            <select id="eventTypeSelect" onchange="toggleEventTypeFields()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="change">🚨 時間割変更</option>
+                                <option value="belonging">🎒 持ち物</option>
+                                <option value="assignment">📝 課題提出日</option>
+                            </select>
+                        </div>
 
-            <!-- 3限 -->
-            <div class="grid-cell grid-period">3</div>
+                        <!-- Fields for Timetable Change -->
+                        <div id="fieldTimetableChange" class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">何時限目</label>
+                                <select id="changePeriodSelect" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                    <option value="1">1限</option>
+                                    <option value="2">2限</option>
+                                    <option value="3">3限</option>
+                                    <option value="4">4限</option>
+                                    <option value="5">5限</option>
+                                    <option value="6">6限</option>
+                                    <option value="7">7限</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">変更後の教科</label>
+                                <input type="text" id="changeSubjectInput" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="例: 体育">
+                            </div>
+                        </div>
+
+                        <!-- Fields for Belongings / Homework -->
+                        <div id="fieldBelonging" class="hidden">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">持ち物の内容</label>
+                            <input type="text" id="belongingInput" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="例: 習字道具、三角定規">
+                        </div>
+
+                        <!-- Fields for Assignment -->
+                        <div id="fieldAssignment" class="hidden space-y-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">提出課題の内容</label>
+                                <input type="text" id="assignmentTitleInput" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="例: ワークP20-25">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">提出締め切り時間</label>
+                                <input type="time" id="assignmentTimeInput" value="08:40" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            </div>
+                        </div>
+
+                        <button onclick="requestAddDayEvent()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-sm shadow-sm transition">
+                            追加する
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Two-Factor Confirmation Modal (z-index 60 to overlap nicely) -->
+    <div id="confirmModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center space-y-4">
+            <div class="mx-auto w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-800" id="confirmModalTitle">本当に実行しますか？</h3>
+                <p class="text-sm text-slate-500 mt-1" id="confirmModalMsg">この操作は取り消せません。</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button onclick="closeConfirmModal(false)" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm transition">
+                    キャンセル
+                </button>
+                <button id="confirmExecuteBtn" class="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-sm transition">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // State Management
+        let currentUser = null;
+        let authIsRegisterMode = false;
+
+        // Date state
+        let selectedCalendarDate = new Date();
+        let activeDayKey = null; // YYYY-MM-DD
+
+        // Confirm Modal Callback
+        let confirmActionCallback = null;
+
+        // Storage Keys
+        const STORAGE_KEY_USER = 'timetable_app_user';
+        const STORAGE_KEY_MASTER = 'timetable_app_master';
+        const STORAGE_KEY_EVENTS = 'timetable_app_events';
+
+        // Default Master Timetable Data Structure: { day(1-5): { period(1-7): "Subject" } }
+        let masterTimetable = {
+            1: { 1: "国語", 2: "数学", 3: "英語", 4: "理科", 5: "社会", 6: "体育" },
+            2: { 1: "数A", 2: "英単", 3: "物理", 4: "化学", 5: "歴史", 6: "保健", 7: "総合" },
+            3: { 1: "音楽", 2: "美術", 3: "国語", 4: "数学", 5: "英語", 6: "クラブ" },
+            4: { 1: "地理", 2: "体育", 3: "数学", 4: "理科", 5: "英語", 6: "道徳" },
+            5: { 1: "英語", 2: "国語", 3: "情報", 4: "数学", 5: "理科", 6: "LHR" }
+        };
+
+        // Events Data Structure: { "YYYY-MM-DD": [ { id, type: 'change'|'belonging'|'assignment', period, subject, title, time } ] }
+        let dayEvents = {};
+
+        // Japanese Holidays Calculator
+        function getJapaneseHolidays(year) {
+            const holidays = {};
+            const add = (m, d, name) => {
+                const key = `${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                holidays[key] = name;
+            };
+
+            // Fixed Holidays
+            add(1, 1, "元日");
+            add(2, 11, "建国記念の日");
+            add(2, 23, "天皇誕生日");
+            add(4, 29, "昭和の日");
+            add(5, 3, "憲法記念日");
+            add(5, 4, "みどりの日");
+            add(5, 5, "こどもの日");
+            add(8, 11, "山の日");
+            add(11, 3, "文化の日");
+            add(11, 23, "勤労感謝の日");
+
+            // Happy Mondays
+            const getNthMonday = (month, nth) => {
+                let count = 0;
+                for (let d = 1; d <= 31; d++) {
+                    const date = new Date(year, month - 1, d);
+                    if (date.getMonth() !== month - 1) break;
+                    if (date.getDay() === 1) {
+                        count++;
+                        if (count === nth) return d;
+                    }
+                }
+                return 1;
+            };
+
+            add(1, getNthMonday(1, 2), "成人の日");
+            add(7, getNthMonday(7, 3), "海の日");
+            add(9, getNthMonday(9, 3), "敬老の日");
+            add(10, getNthMonday(10, 2), "スポーツの日");
+
+            // Equinox Days
+            const vernal = Math.floor(20.8431 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
+            const autumnal = Math.floor(23.2488 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
+            add(3, vernal, "春分の日");
+            add(9, autumnal, "秋分の日");
+
+            // Substitute Holidays
+            const keys = Object.keys(holidays).sort();
+            keys.forEach(key => {
+                const [y, m, d] = key.split('-').map(Number);
+                const date = new Date(y, m - 1, d);
+                if (date.getDay() === 0) {
+                    let subDate = new Date(y, m - 1, d + 1);
+                    while (holidays[formatDateKey(subDate)]) {
+                        subDate.setDate(subDate.getDate() + 1);
+                    }
+                    holidays[formatDateKey(subDate)] = "振替休日";
+                }
+            });
+
+            return holidays;
+        }
+
+        function formatDateKey(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            loadStoredData();
+            checkAuthStatus();
+            renderHeaderDate();
+        });
+
+        function loadStoredData() {
+            const storedMaster = localStorage.getItem(STORAGE_KEY_MASTER);
+            if (storedMaster) {
+                try { masterTimetable = JSON.parse(storedMaster); } catch(e){}
+            }
+            const storedEvents = localStorage.getItem(STORAGE_KEY_EVENTS);
+            if (storedEvents) {
+                try { dayEvents = JSON.parse(storedEvents); } catch(e){}
+            }
+        }
+
+        function saveMasterData() {
+            localStorage.setItem(STORAGE_KEY_MASTER, JSON.stringify(masterTimetable));
+        }
+
+        function saveEventsData() {
+            localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(dayEvents));
+        }
+
+        // Authentication Handlers
+        function checkAuthStatus() {
+            const savedEmail = localStorage.getItem(STORAGE_KEY_USER);
+            if (savedEmail) {
+                currentUser = savedEmail;
+                document.getElementById('authView').classList.add('hidden');
+                document.getElementById('userEmailBadge').innerText = currentUser;
+                document.getElementById('settingsUserEmail').innerText = currentUser;
+                renderWeeklyTimetable();
+                renderCalendar();
+            } else {
+                document.getElementById('authView').classList.remove('hidden');
+            }
+        }
+
+        function toggleAuthMode() {
+            authIsRegisterMode = !authIsRegisterMode;
+            const title = document.getElementById('authTitle');
+            const subtitle = document.getElementById('authSubtitle');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            const toggleBtn = document.getElementById('toggleAuthBtn');
+
+            if (authIsRegisterMode) {
+                title.innerText = "新規アカウント登録";
+                subtitle.innerText = "メールアドレスを入力してアカウントを作成";
+                submitBtn.innerText = "新規登録してスタート";
+                toggleBtn.innerText = "既にアカウントをお持ちの方はこちら（ログイン）";
+            } else {
+                title.innerText = "ログイン";
+                subtitle.innerText = "メールアドレスを入力してログインしてください";
+                submitBtn.innerText = "ログイン";
+                toggleBtn.innerText = "アカウントをお持ちでない方はこちら（新規登録）";
+            }
+        }
+
+        function handleAuth(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value.trim();
+            if (email) {
+                localStorage.setItem(STORAGE_KEY_USER, email);
+                checkAuthStatus();
+            }
+        }
+
+        function requestLogout() {
+            openConfirmModal("ログアウトしますか？", "再度ログインするまでデータにアクセスできません。", () => {
+                localStorage.removeItem(STORAGE_KEY_USER);
+                currentUser = null;
+                checkAuthStatus();
+            });
+        }
+
+        // Header Date Render
+        function renderHeaderDate() {
+            const now = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
+            document.getElementById('currentDateStr').innerText = now.toLocaleDateString('ja-JP', options);
+        }
+
+        // Tab Navigation
+        function switchTab(tabName) {
+            ['home', 'calendar', 'settings'].forEach(tab => {
+                document.getElementById(`tab-${tab}`).classList.add('hidden');
+                
+                const dtBtn = document.getElementById(`nav-${tab}-dt`);
+                if (dtBtn) {
+                    dtBtn.className = tab === tabName
+                        ? "w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-indigo-600 bg-indigo-50 transition"
+                        : "w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition";
+                }
+
+                const mbBtn = document.getElementById(`nav-${tab}-mb`);
+                if (mbBtn) {
+                    mbBtn.className = tab === tabName
+                        ? "flex flex-col items-center space-y-1 text-indigo-600"
+                        : "flex flex-col items-center space-y-1 text-slate-500";
+                }
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            const pageTitles = {
+                home: 'ホーム (今週の時間割)',
+                calendar: 'カレンダー＆スケジュール',
+                settings: '設定・データ管理'
+            };
+            document.getElementById('pageTitle').innerText = pageTitles[tabName];
+
+            if (tabName === 'home') renderWeeklyTimetable();
+            if (tabName === 'calendar') renderCalendar();
+        }
+
+        // RENDER: Weekly Timetable (Home Tab)
+        function renderWeeklyTimetable() {
+            const today = new Date();
+            const currentDayOfWeek = today.getDay(); // 0: Sun, 1: Mon, ...
+            const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+            
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + mondayOffset);
+
+            const holidays = getJapaneseHolidays(today.getFullYear());
+
+            const weekDates = {};
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(monday);
+                dayDate.setDate(monday.getDate() + i);
+                const dayNum = dayDate.getDay();
+                const dateKey = formatDateKey(dayDate);
+                weekDates[dayNum] = { date: dayDate, dateKey: dateKey, holiday: holidays[dateKey] };
+
+                const labelEl = document.getElementById(`day-head-${dayNum}`);
+                if (labelEl) {
+                    const monthDayStr = `${dayDate.getMonth() + 1}/${dayDate.getDate()}`;
+                    const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
+                    let text = `${dayNames[dayNum]} (${monthDayStr})`;
+                    if (holidays[dateKey]) {
+                        text += `<br><span class="text-[10px] bg-rose-200 text-rose-800 px-1 rounded">${holidays[dateKey]}</span>`;
+                    }
+                    labelEl.innerHTML = text;
+                }
+            }
+
+            for (let dayNum = 0; dayNum <= 6; dayNum++) {
+                const dayInfo = weekDates[dayNum];
+                const isHoliday = !!dayInfo.holiday;
+                const isWeekend = (dayNum === 0 || dayNum === 6);
+
+                for (let period = 1; period <= 7; period++) {
+                    const cell = document.getElementById(`cell-${dayNum}-${period}`);
+                    if (!cell) continue;
+
+                    if (period === 7 && dayNum !== 2) {
+                        const eventsForDay = dayEvents[dayInfo.dateKey] || [];
+                        const changeEvent = eventsForDay.find(e => e.type === 'change' && parseInt(e.period) === 7);
+                        if (!changeEvent) {
+                            cell.className = "p-2 min-h-[70px] bg-slate-100/50 text-slate-400 flex items-center justify-center text-xs";
+                            cell.innerHTML = 'なし';
+                            continue;
+                        }
+                    }
+
+                    const eventsForDay = dayEvents[dayInfo.dateKey] || [];
+                    const changeEvent = eventsForDay.find(e => e.type === 'change' && parseInt(e.period) === period);
+
+                    if (changeEvent) {
+                        cell.className = "p-2 min-h-[70px] flex flex-col justify-center bg-rose-100/90 border-2 border-rose-400 text-rose-900 rounded-lg shadow-sm";
+                        cell.innerHTML = `
+                            <span class="text-[10px] font-extrabold text-rose-600 tracking-wider">🚨 変更</span>
+                            <span class="font-bold text-sm">${escapeHtml(changeEvent.subject)}</span>
+                        `;
+                    } else if (isHoliday) {
+                        cell.className = "p-2 min-h-[70px] flex flex-col justify-center bg-rose-50/50 text-rose-400 text-xs font-semibold";
+                        cell.innerHTML = `祝日`;
+                    } else if (isWeekend) {
+                        cell.className = "p-2 min-h-[70px] flex flex-col justify-center bg-slate-100/40 text-slate-400 text-xs font-medium";
+                        cell.innerHTML = `休校日`;
+                    } else {
+                        const subject = masterTimetable[dayNum] ? masterTimetable[dayNum][period] : '';
+                        cell.className = "p-2 min-h-[70px] flex flex-col justify-center bg-white text-slate-700 hover:bg-slate-50 transition";
+                        cell.innerHTML = subject 
+                            ? `<span class="font-semibold text-sm">${escapeHtml(subject)}</span>` 
+                            : `<span class="text-xs text-slate-300">-</span>`;
+                    }
+                }
+            }
+
+            renderTodaySummary();
+        }
+
+        function renderTodaySummary() {
+            const todayKey = formatDateKey(new Date());
+            const todayEvents = dayEvents[todayKey] || [];
+
+            const belongingsList = document.getElementById('todayBelongingsList');
+            const belongings = todayEvents.filter(e => e.type === 'belonging');
+            if (belongings.length > 0) {
+                belongingsList.innerHTML = belongings.map(b => `
+                    <li class="flex items-center space-x-2 bg-purple-50 p-2.5 rounded-lg border border-purple-100 text-purple-900">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-purple-500"></i>
+                        <span class="font-medium">${escapeHtml(b.title)}</span>
+                    </li>
+                `).join('');
+            } else {
+                belongingsList.innerHTML = `<li class="text-slate-400 italic">本日の持ち物はありません</li>`;
+            }
+
+            const upcomingList = document.getElementById('upcomingAssignmentsList');
+            const today = new Date();
+            const sevenDaysLater = new Date();
+            sevenDaysLater.setDate(today.getDate() + 7);
+
+            let upcomingAssignments = [];
+            Object.keys(dayEvents).forEach(dateKey => {
+                const eventDate = new Date(dateKey);
+                if (eventDate >= new Date(today.toDateString()) && eventDate <= sevenDaysLater) {
+                    const assignments = dayEvents[dateKey].filter(e => e.type === 'assignment');
+                    assignments.forEach(a => {
+                        upcomingAssignments.push({ ...a, dateKey });
+                    });
+                }
+            });
+
+            upcomingAssignments.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+
+            if (upcomingAssignments.length > 0) {
+                upcomingList.innerHTML = upcomingAssignments.map(a => `
+                    <li class="flex items-center justify-between bg-emerald-50 p-2.5 rounded-lg border border-emerald-100 text-emerald-900">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="file-text" class="w-4 h-4 text-emerald-500"></i>
+                            <span class="font-medium">${escapeHtml(a.title)}</span>
+                        </div>
+                        <span class="text-xs font-bold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded">
+                            ${a.dateKey.slice(5)} ${a.time || ''}
+                        </span>
+                    </li>
+                `).join('');
+            } else {
+                upcomingList.innerHTML = `<li class="text-slate-400 italic">近日提出が必要な課題はありません</li>`;
+            }
+            lucide.createIcons();
+        }
+
+        // RENDER: Calendar Tab
+        function renderCalendar() {
+            const year = selectedCalendarDate.getFullYear();
+            const month = selectedCalendarDate.getMonth();
+
+            document.getElementById('calendarMonthLabel').innerText = `${year}年 ${month + 1}月`;
+            document.getElementById('calendarMonthPicker').value = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+            const grid = document.getElementById('calendarDaysGrid');
+            grid.innerHTML = '';
+
+            const holidays = getJapaneseHolidays(year);
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = "bg-slate-50/50 min-h-[90px] p-1";
+                grid.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateObj = new Date(year, month, day);
+                const dateKey = formatDateKey(dateObj);
+                const dayOfWeek = dateObj.getDay();
+                const isHoliday = !!holidays[dateKey];
+
+                const dayCell = document.createElement('div');
+                dayCell.className = "min-h-[90px] p-1.5 border-t border-slate-100 hover:bg-indigo-50/30 cursor-pointer transition flex flex-col justify-start";
+                dayCell.onclick = () => openDayDetailModal(dateKey);
+
+                let numColorClass = "text-slate-700";
+                if (dayOfWeek === 0 || isHoliday) numColorClass = "text-rose-600 font-bold";
+                else if (dayOfWeek === 6) numColorClass = "text-blue-600 font-bold";
+
+                let headerHtml = `<div class="flex justify-between items-center mb-1"><span class="text-xs font-semibold px-1 rounded ${numColorClass}">${day}</span>`;
+                if (isHoliday) {
+                    headerHtml += `<span class="text-[9px] bg-rose-100 text-rose-700 px-1 rounded truncate max-w-[60px]">${holidays[dateKey]}</span>`;
+                }
+                headerHtml += `</div>`;
+
+                const events = dayEvents[dateKey] || [];
+                let badgesHtml = '<div class="space-y-1 flex-1 overflow-hidden">';
+                events.forEach(ev => {
+                    if (ev.type === 'change') {
+                        badgesHtml += `<div class="text-[10px] bg-rose-500 text-white font-semibold px-1.5 py-0.5 rounded truncate">🚨 ${ev.period}限:${escapeHtml(ev.subject)}</div>`;
+                    } else if (ev.type === 'belonging') {
+                        badgesHtml += `<div class="text-[10px] bg-purple-500 text-white font-semibold px-1.5 py-0.5 rounded truncate">🎒 ${escapeHtml(ev.title)}</div>`;
+                    } else if (ev.type === 'assignment') {
+                        badgesHtml += `<div class="text-[10px] bg-emerald-500 text-white font-semibold px-1.5 py-0.5 rounded truncate">📝 ${escapeHtml(ev.title)}</div>`;
+                    }
+                });
+                badgesHtml += '</div>';
+
+                dayCell.innerHTML = headerHtml + badgesHtml;
+                grid.appendChild(dayCell);
+            }
+        }
+
+        function changeMonth(offset) {
+            selectedCalendarDate.setMonth(selectedCalendarDate.getMonth() + offset);
+            renderCalendar();
+        }
+
+        function onMonthPickerChange(e) {
+            if (e.target.value) {
+                const [y, m] = e.target.value.split('-').map(Number);
+                selectedCalendarDate = new Date(y, m - 1, 1);
+                renderCalendar();
+            }
+        }
+
+        function goToToday() {
+            selectedCalendarDate = new Date();
+            renderCalendar();
+        }
+
+        // MODAL HANDLERS: Master Timetable
+        function openMasterTimetableModal() {
+            document.getElementById('masterTimetableModal').classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
+        }
+
+        function closeMasterTimetableModal() {
+            document.getElementById('masterTimetableModal').classList.add('opacity-0', 'pointer-events-none');
+            document.body.classList.remove('modal-active');
+        }
+
+        function saveMasterTimetableCell() {
+            const day = document.getElementById('mtDaySelect').value;
+            const period = document.getElementById('mtPeriodSelect').value;
+            const subject = document.getElementById('mtSubjectInput').value.trim();
+
+            if (!masterTimetable[day]) masterTimetable[day] = {};
+            masterTimetable[day][period] = subject;
+            saveMasterData();
+            renderWeeklyTimetable();
+            closeMasterTimetableModal();
+            document.getElementById('mtSubjectInput').value = '';
+        }
+
+        function confirmResetMasterTimetable() {
+            openConfirmModal("基本時間割を全消去しますか？", "すべての曜日の基本授業データがリセットされます。", () => {
+                masterTimetable = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} };
+                saveMasterData();
+                renderWeeklyTimetable();
+                closeMasterTimetableModal();
+            });
+        }
+
+        // MODAL HANDLERS: Day Detail & Edit
+        function openDayDetailModal(dateKey) {
+            activeDayKey = dateKey;
+            const [y, m, d] = dateKey.split('-').map(Number);
+            const holidays = getJapaneseHolidays(y);
+
+            document.getElementById('dayDetailModalTitle').innerText = `${y}年${m}月${d}日`;
+            document.getElementById('dayDetailModalSubtitle').innerText = holidays[dateKey] ? `🎌 ${holidays[dateKey]}` : '';
+
+            renderDayEventsList();
+            toggleEventTypeFields();
+
+            document.getElementById('dayDetailModal').classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
+        }
+
+        function closeDayDetailModal() {
+            document.getElementById('dayDetailModal').classList.add('opacity-0', 'pointer-events-none');
+            document.body.classList.remove('modal-active');
+        }
+
+        function renderDayEventsList() {
+            const listEl = document.getElementById('dayEventsList');
+            const events = dayEvents[activeDayKey] || [];
+
+            if (events.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 italic p-2">登録されている予定や持ち物はありません</p>`;
+                return;
+            }
+
+            listEl.innerHTML = events.map((ev, index) => {
+                let badge = '';
+                let title = '';
+                if (ev.type === 'change') {
+                    badge = `<span class="bg-rose-100 text-rose-700 text-xs font-bold px-2 py-0.5 rounded">時間割変更</span>`;
+                    title = `${ev.period}時限目 ➔ <strong>${escapeHtml(ev.subject)}</strong>`;
+                } else if (ev.type === 'belonging') {
+                    badge = `<span class="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded">持ち物</span>`;
+                    title = escapeHtml(ev.title);
+                } else if (ev.type === 'assignment') {
+                    badge = `<span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded">課題提出</span>`;
+                    title = `${escapeHtml(ev.title)} <span class="text-xs text-slate-400">(${ev.time})</span>`;
+                }
+
+                return `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 border rounded-xl">
+                        <div class="flex items-center space-x-2 text-sm">
+                            ${badge}
+                            <span class="text-slate-700">${title}</span>
+                        </div>
+                        <button onclick="requestDeleteEvent(${index})" class="text-slate-400 hover:text-rose-600 p-1">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function toggleEventTypeFields() {
+            const type = document.getElementById('eventTypeSelect').value;
+            document.getElementById('fieldTimetableChange').classList.toggle('hidden', type !== 'change');
+            document.getElementById('fieldBelonging').classList.toggle('hidden', type !== 'belonging');
+            document.getElementById('fieldAssignment').classList.toggle('hidden', type !== 'assignment');
+        }
+
+        function requestAddDayEvent() {
+            const type = document.getElementById('eventTypeSelect').value;
+            let typeLabel = "予定";
+            if (type === 'change') typeLabel = "時間割変更";
+            if (type === 'belonging') typeLabel = "持ち物";
+            if (type === 'assignment') typeLabel = "課題提出日";
+
+            openConfirmModal(`この内容で登録しますか？`, `選択した日付に「${typeLabel}」を追加します。`, () => {
+                executeAddDayEvent(type);
+            });
+        }
+
+        function executeAddDayEvent(type) {
+            if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
+
+            if (type === 'change') {
+                const period = document.getElementById('changePeriodSelect').value;
+                const subject = document.getElementById('changeSubjectInput').value.trim() || '変更なし';
+                dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period, subject });
+            } else if (type === 'belonging') {
+                const title = document.getElementById('belongingInput').value.trim();
+                if (!title) return;
+                dayEvents[activeDayKey].push({ id: Date.now(), type: 'belonging', title });
+            } else if (type === 'assignment') {
+                const title = document.getElementById('assignmentTitleInput').value.trim();
+                const time = document.getElementById('assignmentTimeInput').value;
+                if (!title) return;
+                dayEvents[activeDayKey].push({ id: Date.now(), type: 'assignment', title, time });
+            }
+
+            saveEventsData();
+            renderDayEventsList();
+            renderCalendar();
+            renderWeeklyTimetable();
+
+            document.getElementById('changeSubjectInput').value = '';
+            document.getElementById('belongingInput').value = '';
+            document.getElementById('assignmentTitleInput').value = '';
+        }
+
+        function requestDeleteEvent(index) {
+            openConfirmModal("この項目を削除しますか？", "この操作は元に戻せません。", () => {
+                if (dayEvents[activeDayKey]) {
+                    dayEvents[activeDayKey].splice(index, 1);
+                    if (dayEvents[activeDayKey].length === 0) delete dayEvents[activeDayKey];
+                    saveEventsData();
+                    renderDayEventsList();
+                    renderCalendar();
+                    renderWeeklyTimetable();
+                }
+            });
+        }
+
+        function confirmResetAllData() {
+            openConfirmModal("全アプリデータを初期化しますか？", "時間割・カレンダーの全記録が完全に削除されます。", () => {
+                localStorage.removeItem(STORAGE_KEY_MASTER);
+                localStorage.removeItem(STORAGE_KEY_EVENTS);
+                masterTimetable = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} };
+                dayEvents = {};
+                renderWeeklyTimetable();
+                renderCalendar();
+                alert("データの初期化が完了しました。");
+            });
+        }
+
+        function openConfirmModal(title, msg, onExecute) {
+            document.getElementById('confirmModalTitle').innerText = title;
+            document.getElementById('confirmModalMsg').innerText = msg;
+            confirmActionCallback = onExecute;
+
+            const modal = document.getElementById('confirmModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            
+            document.getElementById('confirmExecuteBtn').onclick = () => {
+                if (confirmActionCallback) confirmActionCallback();
+                closeConfirmModal(true);
+            };
+        }
+
+        function closeConfirmModal(executed) {
+            const modal = document.getElementById('confirmModal');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            confirmActionCallback = null;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
