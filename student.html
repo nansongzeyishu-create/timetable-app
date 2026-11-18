@@ -299,8 +299,8 @@
             </div>
             
             <div class="p-3.5 overflow-y-auto space-y-3.5 flex-1 text-xs">
-                <!-- Test Period Batch Delete Button Container -->
-                <div id="testPeriodDeleteContainer" class="hidden"></div>
+                <!-- Test Period Batch Actions Container -->
+                <div id="testPeriodActionsContainer" class="hidden"></div>
 
                 <div>
                     <h4 id="dayEventsListHeader" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">登録されている予定</h4>
@@ -383,7 +383,7 @@
             6: {}, 0: {}
         };
         let dayEvents = {};
-        let testRanges = []; // Array of { id, startDate, endDate }
+        let testRanges = [];
 
         function getJapaneseHolidays(year) {
             const holidays = {};
@@ -490,11 +490,10 @@
             if (tabName === 'assignments') renderAssignmentsTab();
         }
 
-        // Helper to check if a date string (YYYY-MM-DD) falls within any test range (weekdays only)
         function isDateInTestRange(dateKey) {
             const d = new Date(dateKey + 'T00:00:00');
             const dayOfWeek = d.getDay();
-            if (dayOfWeek === 0 || dayOfWeek === 6) return false; // weekend is never test day
+            if (dayOfWeek === 0 || dayOfWeek === 6) return false;
 
             return testRanges.some(range => {
                 return dateKey >= range.startDate && dateKey <= range.endDate;
@@ -781,9 +780,17 @@
             });
         }
 
-        function proceedToTestSubjects() {
-            const startStr = document.getElementById('testStartDate').value;
-            const endStr = document.getElementById('testEndDate').value;
+        function proceedToTestSubjects(specificRange = null) {
+            let startStr, endStr;
+            if (specificRange) {
+                startStr = specificRange.startDate;
+                endStr = specificRange.endDate;
+                document.getElementById('testStartDate').value = startStr;
+                document.getElementById('testEndDate').value = endStr;
+            } else {
+                startStr = document.getElementById('testStartDate').value;
+                endStr = document.getElementById('testEndDate').value;
+            }
             const errEl = document.getElementById('testDateError');
 
             if (!startStr || !endStr || startStr > endStr) {
@@ -792,11 +799,11 @@
             }
             errEl.classList.add('hidden');
 
-            // Temporarily register or track the range
-            const newRangeId = Date.now();
-            // Save range
-            testRanges.push({ id: newRangeId, startDate: startStr, endDate: endStr });
-            saveTestRangesData();
+            // Save range if not editing specific existing range
+            if (!specificRange) {
+                testRanges.push({ id: Date.now(), startDate: startStr, endDate: endStr });
+                saveTestRangesData();
+            }
 
             const startDate = new Date(startStr + 'T00:00:00');
             const endDate = new Date(endStr + 'T00:00:00');
@@ -893,25 +900,30 @@
             const holidayName = holidays[dateKey];
             document.getElementById('dayDetailModalSubtitle').innerText = holidayName ? `祝日: ${holidayName}` : '';
 
-            // Check if this day is part of a test range
             const matchedRangeIndex = testRanges.findIndex(range => dateKey >= range.startDate && dateKey <= range.endDate);
-            const deleteContainer = document.getElementById('testPeriodDeleteContainer');
+            const actionsContainer = document.getElementById('testPeriodActionsContainer');
+            
             if (matchedRangeIndex !== -1) {
                 const range = testRanges[matchedRangeIndex];
-                deleteContainer.innerHTML = `
-                    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex justify-between items-center mb-3">
+                actionsContainer.innerHTML = `
+                    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 space-y-2 mb-3">
                         <div>
                             <span class="text-[10px] font-extrabold text-amber-700 block">テスト期間中</span>
                             <span class="text-xs font-bold text-amber-900">${range.startDate.replace(/-/g, '/')} 〜 ${range.endDate.replace(/-/g, '/')}</span>
                         </div>
-                        <button onclick="deleteSpecificTestRange(${matchedRangeIndex})" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-sm transition">
-                            このテスト期間をすべて削除
-                        </button>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <button onclick="editSpecificTestRange(${matchedRangeIndex})" class="py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs shadow-sm transition">
+                                テスト科目を変更
+                            </button>
+                            <button onclick="deleteSpecificTestRange(${matchedRangeIndex})" class="py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-sm transition">
+                                期間をすべて削除
+                            </button>
+                        </div>
                     </div>
                 `;
-                deleteContainer.classList.remove('hidden');
+                actionsContainer.classList.remove('hidden');
             } else {
-                deleteContainer.classList.add('hidden');
+                actionsContainer.classList.add('hidden');
             }
 
             const selectWrapper = document.getElementById('eventTypeSelectWrapper');
@@ -924,7 +936,7 @@
                 eventTypeSelect.value = 'change';
                 document.getElementById('changePeriodSelect').value = String(defaultPeriod);
                 listHeader.innerText = '登録されている時間割変更';
-                formHeader.innerText = '時間割変更を追加';
+                formHeader.innerText = '時間割変更または削除';
             } else {
                 selectWrapper.classList.remove('hidden');
                 listHeader.innerText = '登録されている予定';
@@ -937,10 +949,16 @@
             document.body.classList.add('modal-active');
         }
 
+        function editSpecificTestRange(rangeIndex) {
+            const range = testRanges[rangeIndex];
+            closeDayDetailModal();
+            openTestPeriodModal();
+            proceedToTestSubjects(range);
+        }
+
         function deleteSpecificTestRange(rangeIndex) {
             openConfirmModal("テスト期間の削除", "このテスト期間（日程および登録されたテスト科目）をすべて削除しますか？", () => {
                 const range = testRanges[rangeIndex];
-                // Remove all test events within this range
                 const start = new Date(range.startDate + 'T00:00:00');
                 const end = new Date(range.endDate + 'T00:00:00');
                 let cur = new Date(start);
@@ -1011,9 +1029,15 @@
                 if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
                 if (type === 'change') {
                     const period = document.getElementById('changePeriodSelect').value;
-                    const subject = document.getElementById('changeSubjectInput').value.trim() || '変更なし';
+                    const subject = document.getElementById('changeSubjectInput').value.trim();
+                    
+                    // すでにその時限にある変更を一度削除
                     dayEvents[activeDayKey] = dayEvents[activeDayKey].filter(e => !(e.type === 'change' && !e.isTest && String(e.period) === String(period)));
-                    dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period, subject, isTest: false });
+                    
+                    // 科目が入力されている場合のみ変更データを追加（空白の場合は「その時間を消す」動作になる）
+                    if (subject) {
+                        dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period, subject, isTest: false });
+                    }
                     document.getElementById('changeSubjectInput').value = '';
                 } else if (type === 'belonging') {
                     const title = document.getElementById('belongingInput').value.trim();
@@ -1024,11 +1048,13 @@
                     if (title) dayEvents[activeDayKey].push({ id: Date.now(), type: 'assignment', title, time: document.getElementById('assignmentTimeInput').value });
                     document.getElementById('assignmentTitleInput').value = '';
                 }
+                if (dayEvents[activeDayKey].length === 0) delete dayEvents[activeDayKey];
                 saveEventsData();
                 renderDayEventsList();
                 renderCalendar();
                 renderWeeklyTimetable();
                 renderAssignmentsTab();
+                closeDayDetailModal();
             });
         }
 
