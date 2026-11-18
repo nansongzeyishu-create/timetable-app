@@ -51,7 +51,7 @@
                     <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
                     <span>テスト期間</span>
                 </button>
-                <button onclick="confirmClearAllTests()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="テスト期間をすべて削除">
+                <button onclick="confirmClearAllTests()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="すべてのテスト期間を削除">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
@@ -261,7 +261,7 @@
                 <div id="testDateError" class="text-rose-500 text-[11px] font-bold hidden">※ 終了日は開始日以降の日付を指定してください。</div>
                 <div class="space-y-2 pt-2">
                     <button onclick="proceedToTestSubjects()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-md transition">
-                        次へ（平日のみの科目を入力する）
+                        次へ（科目設定または期間のみ登録）
                     </button>
                     <button onclick="confirmClearAllTests()" class="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs transition">
                         登録済みのテスト期間をすべて削除
@@ -278,7 +278,7 @@
                 <div id="testSubjectsContainer" class="p-3.5 overflow-y-auto space-y-4 flex-1 text-xs">
                     <!-- Dynamic inputs generated here -->
                 </div>
-                <div class="p-3.5 border-t bg-white">
+                <div class="p-3.5 border-t bg-white space-y-2">
                     <button onclick="saveTestSubjects()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md transition">
                         テスト時間割を保存する
                     </button>
@@ -299,6 +299,9 @@
             </div>
             
             <div class="p-3.5 overflow-y-auto space-y-3.5 flex-1 text-xs">
+                <!-- Test Period Batch Delete Button Container -->
+                <div id="testPeriodDeleteContainer" class="hidden"></div>
+
                 <div>
                     <h4 id="dayEventsListHeader" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">登録されている予定</h4>
                     <div id="dayEventsList" class="space-y-1.5"></div>
@@ -369,6 +372,7 @@
         const STORAGE_KEY_USER = 'timetable_app_user';
         const STORAGE_KEY_MASTER = 'timetable_app_master';
         const STORAGE_KEY_EVENTS = 'timetable_app_events';
+        const STORAGE_KEY_TEST_RANGES = 'timetable_app_test_ranges';
 
         let masterTimetable = {
             1: { 1: "国語", 2: "数学", 3: "英語", 4: "理科", 5: "社会", 6: "体育" },
@@ -379,6 +383,7 @@
             6: {}, 0: {}
         };
         let dayEvents = {};
+        let testRanges = []; // Array of { id, startDate, endDate }
 
         function getJapaneseHolidays(year) {
             const holidays = {};
@@ -420,10 +425,13 @@
             if (storedMaster) try { masterTimetable = JSON.parse(storedMaster); } catch(e){}
             const storedEvents = localStorage.getItem(STORAGE_KEY_EVENTS);
             if (storedEvents) try { dayEvents = JSON.parse(storedEvents); } catch(e){}
+            const storedRanges = localStorage.getItem(STORAGE_KEY_TEST_RANGES);
+            if (storedRanges) try { testRanges = JSON.parse(storedRanges); } catch(e){}
         }
 
         function saveMasterData() { localStorage.setItem(STORAGE_KEY_MASTER, JSON.stringify(masterTimetable)); }
         function saveEventsData() { localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(dayEvents)); }
+        function saveTestRangesData() { localStorage.setItem(STORAGE_KEY_TEST_RANGES, JSON.stringify(testRanges)); }
 
         function checkAuthStatus() {
             const savedEmail = localStorage.getItem(STORAGE_KEY_USER);
@@ -482,6 +490,17 @@
             if (tabName === 'assignments') renderAssignmentsTab();
         }
 
+        // Helper to check if a date string (YYYY-MM-DD) falls within any test range (weekdays only)
+        function isDateInTestRange(dateKey) {
+            const d = new Date(dateKey + 'T00:00:00');
+            const dayOfWeek = d.getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) return false; // weekend is never test day
+
+            return testRanges.some(range => {
+                return dateKey >= range.startDate && dateKey <= range.endDate;
+            });
+        }
+
         function renderWeeklyTimetable() {
             const today = new Date();
             const currentDayOfWeek = today.getDay();
@@ -499,6 +518,7 @@
                 const dateKey = formatDateKey(dayDate);
                 const holidayName = holidays[dateKey];
                 const isTodayCol = dateKey === formatDateKey(today);
+                const inTest = isDateInTestRange(dateKey);
 
                 const headEl = document.getElementById(`h-head-${dayNum}`);
                 if (headEl) {
@@ -515,8 +535,7 @@
                     if (!cell) continue;
 
                     const eventsForDay = dayEvents[dateKey] || [];
-                    const testEvents = eventsForDay.filter(e => e.type === 'change' && e.isTest);
-                    const isTestDay = testEvents.length > 0;
+                    const testSubjObj = eventsForDay.find(e => e.type === 'change' && e.isTest && parseInt(e.period) === p);
                     const changeEvent = eventsForDay.find(e => e.type === 'change' && !e.isTest && parseInt(e.period) === p);
                     const masterSubject = masterTimetable[dayNum] ? masterTimetable[dayNum][p] : '';
 
@@ -525,11 +544,10 @@
                         baseStyle += "bg-indigo-50/30 border-x border-indigo-200 font-semibold ";
                     }
 
-                    if (isTestDay) {
-                        const testSubjObj = testEvents.find(e => parseInt(e.period) === p);
-                        if (p <= 4 && testSubjObj) {
+                    if (inTest) {
+                        if (p <= 4) {
                             cell.className = baseStyle + "bg-amber-50 text-amber-900 border border-amber-300 rounded font-bold";
-                            cell.innerHTML = `<span class="text-[8px] text-amber-700 font-extrabold">テスト</span><span class="truncate w-full text-center">${escapeHtml(testSubjObj.subject)}</span>`;
+                            cell.innerHTML = `<span class="text-[8px] text-amber-700 font-extrabold">テスト</span><span class="truncate w-full text-center">${testSubjObj ? escapeHtml(testSubjObj.subject) : '-'}</span>`;
                         } else {
                             cell.className = baseStyle + "bg-slate-50 text-slate-300";
                             cell.innerHTML = `<span>-</span>`;
@@ -623,6 +641,7 @@
                 const dateKey = formatDateKey(dateObj);
                 const dayOfWeek = dateObj.getDay();
                 const isHoliday = !!holidays[dateKey];
+                const inTest = isDateInTestRange(dateKey);
 
                 const dayCell = document.createElement('div');
                 dayCell.className = "min-h-[55px] p-1 border-t border-slate-100 cursor-pointer flex flex-col justify-start hover:bg-indigo-50/20 transition";
@@ -634,13 +653,12 @@
 
                 let html = `<span class="${numClass}">${day}</span>`;
                 const events = dayEvents[dateKey] || [];
-                const hasTest = events.some(e => e.type === 'change' && e.isTest);
                 const hasChange = events.some(e => e.type === 'change' && !e.isTest);
                 const hasBelonging = events.some(e => e.type === 'belonging');
                 const hasAssignment = events.some(e => e.type === 'assignment');
 
                 html += `<div class="flex flex-wrap gap-0.5 mt-0.5">`;
-                if (hasTest) html += `<div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>`;
+                if (inTest) html += `<div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>`;
                 if (hasChange) html += `<div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>`;
                 if (hasBelonging) html += `<div class="w-1.5 h-1.5 rounded-full bg-purple-500"></div>`;
                 if (hasAssignment) html += `<div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>`;
@@ -749,11 +767,13 @@
         }
 
         function confirmClearAllTests() {
-            openConfirmModal("テスト期間の削除", "登録されているすべてのテスト日程・科目を削除しますか？", () => {
+            openConfirmModal("テスト期間の削除", "登録されているすべてのテスト期間・科目を削除しますか？", () => {
+                testRanges = [];
                 Object.keys(dayEvents).forEach(dateKey => {
                     dayEvents[dateKey] = dayEvents[dateKey].filter(e => !(e.type === 'change' && e.isTest));
                     if (dayEvents[dateKey].length === 0) delete dayEvents[dateKey];
                 });
+                saveTestRangesData();
                 saveEventsData();
                 renderWeeklyTimetable();
                 renderCalendar();
@@ -771,6 +791,12 @@
                 return;
             }
             errEl.classList.add('hidden');
+
+            // Temporarily register or track the range
+            const newRangeId = Date.now();
+            // Save range
+            testRanges.push({ id: newRangeId, startDate: startStr, endDate: endStr });
+            saveTestRangesData();
 
             const startDate = new Date(startStr + 'T00:00:00');
             const endDate = new Date(endStr + 'T00:00:00');
@@ -867,6 +893,27 @@
             const holidayName = holidays[dateKey];
             document.getElementById('dayDetailModalSubtitle').innerText = holidayName ? `祝日: ${holidayName}` : '';
 
+            // Check if this day is part of a test range
+            const matchedRangeIndex = testRanges.findIndex(range => dateKey >= range.startDate && dateKey <= range.endDate);
+            const deleteContainer = document.getElementById('testPeriodDeleteContainer');
+            if (matchedRangeIndex !== -1) {
+                const range = testRanges[matchedRangeIndex];
+                deleteContainer.innerHTML = `
+                    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex justify-between items-center mb-3">
+                        <div>
+                            <span class="text-[10px] font-extrabold text-amber-700 block">テスト期間中</span>
+                            <span class="text-xs font-bold text-amber-900">${range.startDate.replace(/-/g, '/')} 〜 ${range.endDate.replace(/-/g, '/')}</span>
+                        </div>
+                        <button onclick="deleteSpecificTestRange(${matchedRangeIndex})" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-sm transition">
+                            このテスト期間をすべて削除
+                        </button>
+                    </div>
+                `;
+                deleteContainer.classList.remove('hidden');
+            } else {
+                deleteContainer.classList.add('hidden');
+            }
+
             const selectWrapper = document.getElementById('eventTypeSelectWrapper');
             const eventTypeSelect = document.getElementById('eventTypeSelect');
             const listHeader = document.getElementById('dayEventsListHeader');
@@ -890,6 +937,31 @@
             document.body.classList.add('modal-active');
         }
 
+        function deleteSpecificTestRange(rangeIndex) {
+            openConfirmModal("テスト期間の削除", "このテスト期間（日程および登録されたテスト科目）をすべて削除しますか？", () => {
+                const range = testRanges[rangeIndex];
+                // Remove all test events within this range
+                const start = new Date(range.startDate + 'T00:00:00');
+                const end = new Date(range.endDate + 'T00:00:00');
+                let cur = new Date(start);
+                while (cur <= end) {
+                    const dk = formatDateKey(cur);
+                    if (dayEvents[dk]) {
+                        dayEvents[dk] = dayEvents[dk].filter(e => !(e.type === 'change' && e.isTest));
+                        if (dayEvents[dk].length === 0) delete dayEvents[dk];
+                    }
+                    cur.setDate(cur.getDate() + 1);
+                }
+
+                testRanges.splice(rangeIndex, 1);
+                saveTestRangesData();
+                saveEventsData();
+                renderWeeklyTimetable();
+                renderCalendar();
+                closeDayDetailModal();
+            });
+        }
+
         function closeDayDetailModal() {
             document.getElementById('dayDetailModal').classList.add('opacity-0', 'pointer-events-none');
             document.body.classList.remove('modal-active');
@@ -901,16 +973,16 @@
 
             const filteredEvents = allEvents
                 .map((ev, originalIndex) => ({ ...ev, originalIndex }))
-                .filter(ev => activeModalMode === 'home' ? ev.type === 'change' : true);
+                .filter(ev => activeModalMode === 'home' ? (ev.type === 'change' && !ev.isTest) : true);
 
             if (filteredEvents.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-slate-400 italic">${activeModalMode === 'home' ? '時間割変更はありません' : '予定はありません'}</p>`;
+                listEl.innerHTML = `<p class="text-xs text-slate-400 italic">登録されている予定はありません</p>`;
                 return;
             }
             listEl.innerHTML = filteredEvents.map(ev => {
                 let labelText = '';
                 if (ev.type === 'change') {
-                    labelText = `${ev.isTest ? '[テスト] ' : '時間割変更: '}${ev.period}限 (${escapeHtml(ev.subject)})`;
+                    labelText = `${ev.isTest ? '[テスト科目] ' : '時間割変更: '}${ev.period}限 (${escapeHtml(ev.subject)})`;
                 } else if (ev.type === 'belonging') {
                     labelText = `持ち物: ${escapeHtml(ev.title)}`;
                 } else {
@@ -992,6 +1064,7 @@
                 localStorage.clear();
                 masterTimetable = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 0: {} };
                 dayEvents = {};
+                testRanges = [];
                 checkAuthStatus();
             });
         }
