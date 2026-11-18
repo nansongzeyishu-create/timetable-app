@@ -45,11 +45,14 @@
                 <span class="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">TODAY</span>
                 <h1 class="text-base font-extrabold text-slate-900 leading-tight" id="currentDateStr"></h1>
             </div>
-            <!-- カレンダータブでのみ表示されるテスト期間ボタン -->
-            <div id="testButtonHeaderContainer" class="hidden">
-                <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+            <!-- カレンダータブでのみ表示されるテスト期間関連ボタン -->
+            <div id="testButtonHeaderContainer" class="hidden flex items-center gap-1.5">
+                <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm">
                     <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
                     <span>テスト期間</span>
+                </button>
+                <button onclick="confirmClearAllTests()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="テスト期間をすべて削除">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
         </header>
@@ -256,9 +259,14 @@
                     </div>
                 </div>
                 <div id="testDateError" class="text-rose-500 text-[11px] font-bold hidden">※ 終了日は開始日以降の日付を指定してください。</div>
-                <button onclick="proceedToTestSubjects()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-md transition">
-                    次へ（平日のみの科目を入力する）
-                </button>
+                <div class="space-y-2 pt-2">
+                    <button onclick="proceedToTestSubjects()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-md transition">
+                        次へ（平日のみの科目を入力する）
+                    </button>
+                    <button onclick="confirmClearAllTests()" class="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs transition">
+                        登録済みのテスト期間をすべて削除
+                    </button>
+                </div>
             </div>
 
             <!-- Step 2: Subjects Input for Each Weekday (1st to 4th period) -->
@@ -462,7 +470,6 @@
             });
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
-            // カレンダータブの時だけヘッダーに「テスト期間」ボタンを表示
             const testBtnContainer = document.getElementById('testButtonHeaderContainer');
             if (tabName === 'calendar') {
                 testBtnContainer.classList.remove('hidden');
@@ -519,7 +526,6 @@
                     }
 
                     if (isTestDay) {
-                        // テスト期間の時：通常の時間割は表示せず、テスト科目のみ表示（1〜4限にそれぞれテスト科目が割り当てられている想定）
                         const testSubjObj = testEvents.find(e => parseInt(e.period) === p);
                         if (p <= 4 && testSubjObj) {
                             cell.className = baseStyle + "bg-amber-50 text-amber-900 border border-amber-300 rounded font-bold";
@@ -742,6 +748,19 @@
             document.getElementById('testStep2').classList.add('hidden');
         }
 
+        function confirmClearAllTests() {
+            openConfirmModal("テスト期間の削除", "登録されているすべてのテスト日程・科目を削除しますか？", () => {
+                Object.keys(dayEvents).forEach(dateKey => {
+                    dayEvents[dateKey] = dayEvents[dateKey].filter(e => !(e.type === 'change' && e.isTest));
+                    if (dayEvents[dateKey].length === 0) delete dayEvents[dateKey];
+                });
+                saveEventsData();
+                renderWeeklyTimetable();
+                renderCalendar();
+                closeTestPeriodModal();
+            });
+        }
+
         function proceedToTestSubjects() {
             const startStr = document.getElementById('testStartDate').value;
             const endStr = document.getElementById('testEndDate').value;
@@ -767,7 +786,6 @@
 
             while (current <= endDate) {
                 const dayOfWeek = current.getDay();
-                // 土曜日(6)と日曜日(0)はスキップする
                 if (dayOfWeek !== 0 && dayOfWeek !== 6) {
                     dayCount++;
                     const dateKey = formatDateKey(current);
@@ -815,7 +833,6 @@
 
                 if (!dayEvents[dateKey]) dayEvents[dateKey] = [];
 
-                // Remove existing test items for that period
                 dayEvents[dateKey] = dayEvents[dateKey].filter(e => !(e.type === 'change' && e.isTest && String(e.period) === String(period)));
 
                 if (subject) {
