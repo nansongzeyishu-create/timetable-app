@@ -45,11 +45,13 @@
                 <span class="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">TODAY</span>
                 <h1 class="text-base font-extrabold text-slate-900 leading-tight" id="currentDateStr"></h1>
             </div>
-            <!-- テスト期間ボタン -->
-            <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
-                <span>テスト期間</span>
-            </button>
+            <!-- カレンダータブでのみ表示されるテスト期間ボタン -->
+            <div id="testButtonHeaderContainer" class="hidden">
+                <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                    <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
+                    <span>テスト期間</span>
+                </button>
+            </div>
         </header>
 
         <!-- TAB CONTENT: HOME (1-WEEK TIMETABLE GRID) -->
@@ -229,20 +231,20 @@
         </div>
     </div>
 
-    <!-- MODAL: Test Period Setup & Subject Input -->
+    <!-- MODAL: Test Period Setup & Subject Input (Weekdays Only) -->
     <div id="testPeriodModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-0 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-t-3xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
             <div class="p-3.5 border-b border-slate-200 flex justify-between items-center bg-amber-50 rounded-t-3xl">
                 <div class="flex items-center gap-2">
                     <i data-lucide="pen-tool" class="w-4 h-4 text-amber-600"></i>
-                    <h3 class="font-extrabold text-amber-900 text-sm">テスト期間・時間割設定</h3>
+                    <h3 class="font-extrabold text-amber-900 text-sm">テスト期間・時間割設定 (平日のみ)</h3>
                 </div>
                 <button onclick="closeTestPeriodModal()" class="text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
 
             <!-- Step 1: Date Range Selection -->
             <div id="testStep1" class="p-4 space-y-4 text-xs">
-                <p class="text-slate-600 leading-relaxed">テストの開始日と終了日を選択してください。期間中の1〜4限のテスト科目を一括で設定できます。</p>
+                <p class="text-slate-600 leading-relaxed">テストの開始日と終了日を選択してください（土日は自動的にスキップされ、平日のみ対象になります）。</p>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 mb-1">開始日</label>
@@ -255,11 +257,11 @@
                 </div>
                 <div id="testDateError" class="text-rose-500 text-[11px] font-bold hidden">※ 終了日は開始日以降の日付を指定してください。</div>
                 <button onclick="proceedToTestSubjects()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-md transition">
-                    次へ（科目を入力する）
+                    次へ（平日のみの科目を入力する）
                 </button>
             </div>
 
-            <!-- Step 2: Subjects Input for Each Day (1st to 4th period) -->
+            <!-- Step 2: Subjects Input for Each Weekday (1st to 4th period) -->
             <div id="testStep2" class="hidden flex-1 flex flex-col overflow-hidden">
                 <div class="px-4 py-2 bg-slate-50 border-b flex justify-between items-center text-[11px]">
                     <span id="testRangeSummary" class="font-bold text-slate-700"></span>
@@ -277,7 +279,7 @@
         </div>
     </div>
 
-    <!-- MODAL: Day Detail & Edit (Supports both Home-only mode and Calendar full mode) -->
+    <!-- MODAL: Day Detail & Edit -->
     <div id="dayDetailModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-0 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-t-3xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col">
             <div class="p-3.5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-3xl">
@@ -297,7 +299,6 @@
                 <div class="border-t pt-3">
                     <h4 id="dayAddFormHeader" class="font-bold text-slate-700 mb-2 text-xs">新規追加</h4>
                     <div class="space-y-2.5">
-                        <!-- Select box (hidden when opened from Home) -->
                         <div id="eventTypeSelectWrapper">
                             <select id="eventTypeSelect" onchange="toggleEventTypeFields()" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold">
                                 <option value="change">時間割変更</option>
@@ -354,7 +355,7 @@
         let currentUser = null;
         let selectedCalendarDate = new Date();
         let activeDayKey = null;
-        let activeModalMode = 'calendar'; // 'home' (only change) or 'calendar' (all)
+        let activeModalMode = 'calendar';
         let confirmActionCallback = null;
 
         const STORAGE_KEY_USER = 'timetable_app_user';
@@ -460,6 +461,15 @@
                 if (mbBtn) mbBtn.className = tab === tabName ? "flex flex-col items-center space-y-0.5 text-indigo-600" : "flex flex-col items-center space-y-0.5 text-slate-400";
             });
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+            // カレンダータブの時だけヘッダーに「テスト期間」ボタンを表示
+            const testBtnContainer = document.getElementById('testButtonHeaderContainer');
+            if (tabName === 'calendar') {
+                testBtnContainer.classList.remove('hidden');
+            } else {
+                testBtnContainer.classList.add('hidden');
+            }
+
             if (tabName === 'home') renderWeeklyTimetable();
             if (tabName === 'calendar') renderCalendar();
             if (tabName === 'assignments') renderAssignmentsTab();
@@ -498,7 +508,9 @@
                     if (!cell) continue;
 
                     const eventsForDay = dayEvents[dateKey] || [];
-                    const changeEvent = eventsForDay.find(e => e.type === 'change' && parseInt(e.period) === p);
+                    const testEvents = eventsForDay.filter(e => e.type === 'change' && e.isTest);
+                    const isTestDay = testEvents.length > 0;
+                    const changeEvent = eventsForDay.find(e => e.type === 'change' && !e.isTest && parseInt(e.period) === p);
                     const masterSubject = masterTimetable[dayNum] ? masterTimetable[dayNum][p] : '';
 
                     let baseStyle = "p-1 min-h-[48px] flex flex-col justify-center items-center text-[10px] cursor-pointer ";
@@ -506,14 +518,19 @@
                         baseStyle += "bg-indigo-50/30 border-x border-indigo-200 font-semibold ";
                     }
 
-                    if (changeEvent) {
-                        if (changeEvent.isTest) {
+                    if (isTestDay) {
+                        // テスト期間の時：通常の時間割は表示せず、テスト科目のみ表示（1〜4限にそれぞれテスト科目が割り当てられている想定）
+                        const testSubjObj = testEvents.find(e => parseInt(e.period) === p);
+                        if (p <= 4 && testSubjObj) {
                             cell.className = baseStyle + "bg-amber-50 text-amber-900 border border-amber-300 rounded font-bold";
-                            cell.innerHTML = `<span class="text-[8px] text-amber-700 font-extrabold">テスト</span><span class="truncate w-full text-center">${escapeHtml(changeEvent.subject)}</span>`;
+                            cell.innerHTML = `<span class="text-[8px] text-amber-700 font-extrabold">テスト</span><span class="truncate w-full text-center">${escapeHtml(testSubjObj.subject)}</span>`;
                         } else {
-                            cell.className = baseStyle + "bg-rose-50 text-rose-900 border border-rose-200 rounded font-bold";
-                            cell.innerHTML = `<span class="text-[8px] text-rose-600 font-extrabold">変更</span><span class="truncate w-full text-center">${escapeHtml(changeEvent.subject)}</span>`;
+                            cell.className = baseStyle + "bg-slate-50 text-slate-300";
+                            cell.innerHTML = `<span>-</span>`;
                         }
+                    } else if (changeEvent) {
+                        cell.className = baseStyle + "bg-rose-50 text-rose-900 border border-rose-200 rounded font-bold";
+                        cell.innerHTML = `<span class="text-[8px] text-rose-600 font-extrabold">変更</span><span class="truncate w-full text-center">${escapeHtml(changeEvent.subject)}</span>`;
                     } else if (holidayName) {
                         cell.className = baseStyle + "bg-rose-50/40 text-rose-400";
                         cell.innerHTML = `<span>祝日</span>`;
@@ -524,7 +541,6 @@
                         cell.className = baseStyle + "bg-white text-slate-700";
                         cell.innerHTML = `<span class="truncate w-full text-center">${masterSubject ? escapeHtml(masterSubject) : '-'}</span>`;
                     }
-                    // ホームから開く時は mode = 'home' (時間割変更のみ) に設定し、クリックした時限を自動選択
                     cell.onclick = () => openDayDetailModal(dateKey, 'home', p);
                 }
             });
@@ -542,7 +558,6 @@
             const tomorrowKey = formatDateKey(tomorrow);
             const tomorrowEvents = dayEvents[tomorrowKey] || [];
 
-            // Today Belongings
             const belongingsList = document.getElementById('todayBelongingsList');
             const belongings = todayEvents.filter(e => e.type === 'belonging');
             if (belongings.length > 0) {
@@ -551,7 +566,6 @@
                 belongingsList.innerHTML = `<li class="text-slate-400 italic">本日の持ち物はありません</li>`;
             }
 
-            // Tomorrow Belongings
             const tomorrowBelongingsList = document.getElementById('tomorrowBelongingsList');
             const tomorrowBelongings = tomorrowEvents.filter(e => e.type === 'belonging');
             if (tomorrowBelongings.length > 0) {
@@ -560,7 +574,6 @@
                 tomorrowBelongingsList.innerHTML = `<li class="text-slate-400 italic">明日の持ち物はありません</li>`;
             }
 
-            // Upcoming Assignments
             const upcomingList = document.getElementById('upcomingAssignmentsList');
             const sevenDaysLater = new Date(); sevenDaysLater.setDate(today.getDate() + 7);
 
@@ -607,7 +620,6 @@
 
                 const dayCell = document.createElement('div');
                 dayCell.className = "min-h-[55px] p-1 border-t border-slate-100 cursor-pointer flex flex-col justify-start hover:bg-indigo-50/20 transition";
-                // カレンダーから開く時は mode = 'calendar' (全項目)
                 dayCell.onclick = () => openDayDetailModal(dateKey, 'calendar');
 
                 let numClass = "text-slate-700 font-bold text-xs";
@@ -671,7 +683,6 @@
             renderCalendar();
         }
 
-        // Month Picker Modal
         function openMonthPickerModal() {
             const yearSelect = document.getElementById('pickerYearSelect');
             const monthSelect = document.getElementById('pickerMonthSelect');
@@ -704,7 +715,7 @@
             closeMonthPickerModal();
         }
 
-        // Test Period Modal Logic
+        // Test Period Modal Logic (Weekday Only)
         function openTestPeriodModal() {
             const todayStr = formatDateKey(new Date());
             const startInput = document.getElementById('testStartDate');
@@ -746,7 +757,7 @@
             const endDate = new Date(endStr + 'T00:00:00');
             const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
 
-            document.getElementById('testRangeSummary').innerText = `${startStr.replace(/-/g, '/')} 〜 ${endStr.replace(/-/g, '/')}`;
+            document.getElementById('testRangeSummary').innerText = `${startStr.replace(/-/g, '/')} 〜 ${endStr.replace(/-/g, '/')} (土日除外)`;
 
             const container = document.getElementById('testSubjectsContainer');
             container.innerHTML = '';
@@ -755,37 +766,39 @@
             let dayCount = 0;
 
             while (current <= endDate) {
-                dayCount++;
-                const dateKey = formatDateKey(current);
-                const m = current.getMonth() + 1;
-                const d = current.getDate();
-                const w = dayNames[current.getDay()];
+                const dayOfWeek = current.getDay();
+                // 土曜日(6)と日曜日(0)はスキップする
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                    dayCount++;
+                    const dateKey = formatDateKey(current);
+                    const m = current.getMonth() + 1;
+                    const d = current.getDate();
+                    const w = dayNames[dayOfWeek];
 
-                // Retrieve existing test subjects if any
-                const existingEvents = dayEvents[dateKey] || [];
-                const getExisting = (p) => {
-                    const found = existingEvents.find(e => e.type === 'change' && parseInt(e.period) === p);
-                    return found ? found.subject : '';
-                };
+                    const existingEvents = dayEvents[dateKey] || [];
+                    const getExisting = (p) => {
+                        const found = existingEvents.find(e => e.type === 'change' && e.isTest && parseInt(e.period) === p);
+                        return found ? found.subject : '';
+                    };
 
-                const card = document.createElement('div');
-                card.className = "bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2";
-                card.innerHTML = `
-                    <div class="font-extrabold text-slate-800 border-b pb-1 flex justify-between items-center">
-                        <span>${dayCount}日目: ${m}月${d}日 (${w})</span>
-                        <span class="text-[10px] text-amber-600 font-bold">1〜4限</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        ${[1, 2, 3, 4].map(p => `
-                            <div class="flex items-center gap-1.5 bg-white border rounded-xl px-2 py-1.5">
-                                <span class="text-[10px] font-bold text-slate-400 w-6">${p}限</span>
-                                <input type="text" data-date="${dateKey}" data-period="${p}" value="${escapeHtml(getExisting(p))}" placeholder="科目名" class="test-subject-input w-full text-xs font-bold text-slate-800 focus:outline-none">
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                container.appendChild(card);
-
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-2";
+                    card.innerHTML = `
+                        <div class="font-extrabold text-slate-800 border-b pb-1 flex justify-between items-center">
+                            <span>${dayCount}日目: ${m}月${d}日 (${w})</span>
+                            <span class="text-[10px] text-amber-600 font-bold">1〜4限テスト</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${[1, 2, 3, 4].map(p => `
+                                <div class="flex items-center gap-1.5 bg-white border rounded-xl px-2 py-1.5">
+                                    <span class="text-[10px] font-bold text-slate-400 w-6">${p}限</span>
+                                    <input type="text" data-date="${dateKey}" data-period="${p}" value="${escapeHtml(getExisting(p))}" placeholder="科目名" class="test-subject-input w-full text-xs font-bold text-slate-800 focus:outline-none">
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                }
                 current.setDate(current.getDate() + 1);
             }
 
@@ -802,8 +815,8 @@
 
                 if (!dayEvents[dateKey]) dayEvents[dateKey] = [];
 
-                // Remove any existing timetable change on that period first
-                dayEvents[dateKey] = dayEvents[dateKey].filter(e => !(e.type === 'change' && String(e.period) === String(period)));
+                // Remove existing test items for that period
+                dayEvents[dateKey] = dayEvents[dateKey].filter(e => !(e.type === 'change' && e.isTest && String(e.period) === String(period)));
 
                 if (subject) {
                     dayEvents[dateKey].push({
@@ -826,7 +839,6 @@
             closeTestPeriodModal();
         }
 
-        // Day Detail Modal (mode: 'home' | 'calendar')
         function openDayDetailModal(dateKey, mode = 'calendar', defaultPeriod = 1) {
             activeDayKey = dateKey;
             activeModalMode = mode;
@@ -838,7 +850,6 @@
             const holidayName = holidays[dateKey];
             document.getElementById('dayDetailModalSubtitle').innerText = holidayName ? `祝日: ${holidayName}` : '';
 
-            // Mode switching: Home shows only 'change', Calendar shows all options
             const selectWrapper = document.getElementById('eventTypeSelectWrapper');
             const eventTypeSelect = document.getElementById('eventTypeSelect');
             const listHeader = document.getElementById('dayEventsListHeader');
@@ -871,7 +882,6 @@
             const listEl = document.getElementById('dayEventsList');
             const allEvents = dayEvents[activeDayKey] || [];
 
-            // In 'home' mode, only display 'change' items
             const filteredEvents = allEvents
                 .map((ev, originalIndex) => ({ ...ev, originalIndex }))
                 .filter(ev => activeModalMode === 'home' ? ev.type === 'change' : true);
@@ -913,9 +923,8 @@
                 if (type === 'change') {
                     const period = document.getElementById('changePeriodSelect').value;
                     const subject = document.getElementById('changeSubjectInput').value.trim() || '変更なし';
-                    // Overwrite if same period already has a change
-                    dayEvents[activeDayKey] = dayEvents[activeDayKey].filter(e => !(e.type === 'change' && String(e.period) === String(period)));
-                    dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period, subject });
+                    dayEvents[activeDayKey] = dayEvents[activeDayKey].filter(e => !(e.type === 'change' && !e.isTest && String(e.period) === String(period)));
+                    dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period, subject, isTest: false });
                     document.getElementById('changeSubjectInput').value = '';
                 } else if (type === 'belonging') {
                     const title = document.getElementById('belongingInput').value.trim();
