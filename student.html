@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>生徒用時間割・スケジュール管理</title>
+    <title>スクール手帳 - 時間割・スケジュール管理</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -15,7 +15,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col pb-20 md:pb-0 md:pl-64 select-none">
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col pb-20 select-none">
 
     <!-- Auth View (Hidden when logged in) -->
     <div id="authView" class="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
@@ -24,108 +24,95 @@
                 <i data-lucide="book-open" class="w-10 h-10"></i>
             </div>
             <div>
-                <h1 class="text-2xl font-bold text-slate-800" id="authTitle">ログイン</h1>
-                <p class="text-slate-500 text-xs mt-1" id="authSubtitle">メールアドレスを入力してスタート</p>
+                <h1 class="text-2xl font-bold text-slate-800">ログイン</h1>
+                <p class="text-slate-500 text-xs mt-1">メールアドレスを入力してスタート</p>
             </div>
 
             <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
-                <input type="email" id="authEmail" required class="w-full px-4 py-3 border border-slate-200 rounded-xl text-center focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="student@example.com">
-                <button type="submit" id="authSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition">
+                <input type="email" id="authEmail" required class="w-full px-4 py-3 border border-slate-200 rounded-xl text-center focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="student@example.com">
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition text-sm">
                     ログイン
                 </button>
             </form>
-
-            <button type="button" onclick="toggleAuthMode()" id="toggleAuthBtn" class="text-xs text-indigo-600 font-medium">
-                新規アカウント作成はこちら
-            </button>
         </div>
     </div>
 
-    <!-- Sidebar / Navigation (Desktop fallback) -->
-    <aside class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 fixed inset-y-0 left-0 z-30">
-        <div class="p-6 border-b border-slate-100 flex items-center space-x-3">
-            <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-md">
-                <i data-lucide="calendar" class="w-6 h-6"></i>
-            </div>
+    <!-- Main Content Area (Mobile Optimized) -->
+    <main class="flex-1 p-3 max-w-md mx-auto w-full space-y-3 pb-6">
+        <!-- HEADER -->
+        <header class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center">
             <div>
-                <h2 class="font-bold text-slate-800">スクール手帳</h2>
-                <span class="text-xs text-indigo-600 font-medium truncate max-w-[140px] block" id="userEmailBadge"></span>
+                <span class="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">TODAY</span>
+                <h1 class="text-base font-extrabold text-slate-900 leading-tight" id="currentDateStr"></h1>
             </div>
-        </div>
-        <nav class="flex-1 p-4 space-y-2">
-            <button onclick="switchTab('home')" id="nav-home-dt" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-indigo-600 bg-indigo-50 transition">
-                <i data-lucide="home" class="w-5 h-5"></i><span>ホーム</span>
-            </button>
-            <button onclick="switchTab('calendar')" id="nav-calendar-dt" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition">
-                <i data-lucide="calendar-days" class="w-5 h-5"></i><span>カレンダー</span>
-            </button>
-            <button onclick="switchTab('settings')" id="nav-settings-dt" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition">
-                <i data-lucide="settings" class="w-5 h-5"></i><span>設定</span>
-            </button>
-        </nav>
-        <div class="p-4 border-t border-slate-100">
-            <button onclick="requestLogout()" class="w-full flex items-center justify-center space-x-2 text-rose-600 hover:bg-rose-50 p-3 rounded-xl text-sm font-bold transition">
-                <i data-lucide="log-out" class="w-4 h-4"></i><span>ログアウト</span>
-            </button>
-        </div>
-    </aside>
-
-    <!-- Main Content Area -->
-    <main class="flex-1 p-4 max-w-lg mx-auto w-full">
-        <!-- MOBILE HEADER: Large Date Display -->
-        <header class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-4 flex justify-between items-center">
-            <div>
-                <span class="text-xs font-bold text-indigo-600 tracking-wider uppercase">TODAY</span>
-                <h1 class="text-2xl font-extrabold text-slate-900 leading-tight" id="currentDateStr">2026年11月5日(木)</h1>
-            </div>
-            <button onclick="openMasterTimetableModal()" class="p-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl font-bold text-xs flex items-center gap-1">
-                <i data-lucide="edit-3" class="w-4 h-4"></i>
-                <span class="hidden sm:inline">時間割設定</span>
-            </button>
+            <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-1 rounded-lg truncate max-w-[130px]" id="userEmailBadge"></span>
         </header>
 
-        <!-- TAB CONTENT: HOME (WEEKLY / DAILY TIMETABLE) -->
-        <section id="tab-home" class="space-y-4">
-            <!-- Day Selector Tabs (Mon to Sun) -->
-            <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 flex justify-between gap-1 overflow-x-auto no-scrollbar" id="dayTabContainer">
-                <!-- Tabs generated dynamically -->
+        <!-- TAB CONTENT: HOME (1-WEEK TIMETABLE GRID) -->
+        <section id="tab-home" class="space-y-3">
+            <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200">
+                <h2 class="font-extrabold text-slate-800 text-xs mb-2 flex items-center gap-1.5">
+                    <i data-lucide="clock" class="w-4 h-4 text-indigo-500"></i> 今週の時間割 (月〜日)
+                </h2>
+                <!-- Horizontal scrolling wrapper for 1-week grid -->
+                <div class="overflow-x-auto no-scrollbar">
+                    <div class="min-w-[650px] grid grid-cols-8 divide-x divide-y divide-slate-100 text-center text-[11px]" id="weeklyGridContainer">
+                        <div class="bg-slate-50 p-1.5 font-bold text-slate-400 flex items-center justify-center text-[10px]">時限</div>
+                        <div class="bg-slate-50 p-1.5 font-bold text-slate-600" id="h-head-1">月</div>
+                        <div class="bg-slate-50 p-1.5 font-bold text-slate-600" id="h-head-2">火</div>
+                        <div class="bg-slate-50 p-1.5 font-bold text-slate-600" id="h-head-3">水</div>
+                        <div class="bg-slate-50 p-1.5 font-bold text-slate-600" id="h-head-4">木</div>
+                        <div class="bg-slate-50 p-1.5 font-bold text-slate-600" id="h-head-5">金</div>
+                        <div class="bg-blue-50/50 p-1.5 font-bold text-blue-600" id="h-head-6">土</div>
+                        <div class="bg-rose-50/50 p-1.5 font-bold text-rose-600" id="h-head-0">日</div>
+
+                        <script>
+                            for(let p=1; p<=7; p++) {
+                                document.write(`
+                                    <div class="bg-slate-50 p-1.5 font-bold text-slate-400 flex items-center justify-center text-[10px]">${p}</div>
+                                    <div id="cell-1-${p}" class="p-1 min-h-[48px] flex flex-col justify-center items-center"></div>
+                                    <div id="cell-2-${p}" class="p-1 min-h-[48px] flex flex-col justify-center items-center"></div>
+                                    <div id="cell-3-${p}" class="p-1 min-h-[48px] flex flex-col justify-center items-center"></div>
+                                    <div id="cell-4-${p}" class="p-1 min-h-[48px] flex flex-col justify-center items-center"></div>
+                                    <div id="cell-5-${p}" class="p-1 min-h-[48px] flex flex-col justify-center items-center"></div>
+                                    <div id="cell-6-${p}" class="p-1 min-h-[48px] flex flex-col justify-center items-center bg-blue-50/10"></div>
+                                    <div id="cell-0-${p}" class="p-1 min-h-[48px] flex flex-col justify-center items-center bg-rose-50/10"></div>
+                                `);
+                            }
+                        </script>
+                    </div>
+                </div>
             </div>
 
-            <!-- Single Day Timetable List -->
-            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-3">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <h2 class="font-extrabold text-slate-800 text-base flex items-center gap-2" id="selectedDayTitle">
-                        <i data-lucide="clock" class="w-4 h-4 text-indigo-500"></i> 今日の授業
-                    </h2>
-                    <span id="selectedDayHolidayBadge" class="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 hidden">祝日</span>
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 gap-2.5">
+                <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm space-y-3">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-1.5">
+                            <span class="p-1 bg-purple-100 text-purple-600 rounded-lg"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i></span>
+                            本日の持ち物
+                        </h3>
+                        <ul id="todayBelongingsList" class="space-y-1 text-xs text-slate-600">
+                            <li class="text-slate-400 italic">本日の持ち物はありません</li>
+                        </ul>
+                    </div>
+                    <div class="border-t pt-2.5">
+                        <h3 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-1.5">
+                            <span class="p-1 bg-purple-50 text-purple-500 rounded-lg"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i></span>
+                            明日の持ち物
+                        </h3>
+                        <ul id="tomorrowBelongingsList" class="space-y-1 text-xs text-slate-600">
+                            <li class="text-slate-400 italic">明日の持ち物はありません</li>
+                        </ul>
+                    </div>
                 </div>
 
-                <!-- Timetable Items 1 to 7 -->
-                <div id="dailyPeriodList" class="space-y-2">
-                    <!-- Period items populated dynamically -->
-                </div>
-            </div>
-
-            <!-- Mobile Summary Cards -->
-            <div class="space-y-3">
-                <!-- Today Belongings -->
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 mb-2">
-                        <span class="p-1 bg-purple-100 text-purple-600 rounded-lg"><i data-lucide="briefcase" class="w-3.5 h-3.5"></i></span>
-                        本日の持ち物
-                    </h3>
-                    <ul id="todayBelongingsList" class="space-y-1.5 text-xs text-slate-600">
-                        <li class="text-slate-400 italic">本日の持ち物はありません</li>
-                    </ul>
-                </div>
-
-                <!-- Upcoming Assignments -->
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2 mb-2">
+                <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-800 text-xs flex items-center gap-1.5 mb-2">
                         <span class="p-1 bg-emerald-100 text-emerald-600 rounded-lg"><i data-lucide="file-check-2" class="w-3.5 h-3.5"></i></span>
                         近日提出の課題 (1週間以内)
                     </h3>
-                    <ul id="upcomingAssignmentsList" class="space-y-1.5 text-xs text-slate-600">
+                    <ul id="upcomingAssignmentsList" class="space-y-1 text-xs text-slate-600">
                         <li class="text-slate-400 italic">提出が必要な課題はありません</li>
                     </ul>
                 </div>
@@ -133,49 +120,57 @@
         </section>
 
         <!-- TAB CONTENT: CALENDAR -->
-        <section id="tab-calendar" class="hidden space-y-4">
+        <section id="tab-calendar" class="hidden space-y-3">
             <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center">
                 <button onclick="changeMonth(-1)" class="p-2 rounded-xl border hover:bg-slate-50 text-slate-600">
                     <i data-lucide="chevron-left" class="w-4 h-4"></i>
                 </button>
-                <h2 id="calendarMonthLabel" class="text-base font-extrabold text-slate-800">2026年 11月</h2>
+                <!-- Clickable Month Label to Open Year/Month Selector -->
+                <button onclick="openMonthPickerModal()" id="calendarMonthLabel" class="text-sm font-extrabold text-slate-800 px-3 py-1 bg-slate-50 hover:bg-slate-100 rounded-xl transition flex items-center gap-1">
+                    2026年 11月
+                </button>
                 <button onclick="changeMonth(1)" class="p-2 rounded-xl border hover:bg-slate-50 text-slate-600">
                     <i data-lucide="chevron-right" class="w-4 h-4"></i>
                 </button>
             </div>
 
-            <!-- Calendar Grid -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50 text-center text-xs font-bold py-2.5 text-slate-500">
+                <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50 text-center text-[10px] font-bold py-2 text-slate-500">
                     <span class="text-rose-500">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="text-blue-500">土</span>
                 </div>
-                <div id="calendarDaysGrid" class="grid grid-cols-7 divide-x divide-y divide-slate-100 min-h-[320px]">
-                    <!-- Dynamically populated -->
+                <div id="calendarDaysGrid" class="grid grid-cols-7 divide-x divide-y divide-slate-100 min-h-[280px]"></div>
+            </div>
+        </section>
+
+        <!-- TAB CONTENT: ASSIGNMENTS -->
+        <section id="tab-assignments" class="hidden space-y-3">
+            <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 space-y-3">
+                <div class="border-b pb-2.5 flex justify-between items-center">
+                    <h2 class="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
+                        <i data-lucide="file-check-2" class="w-4 h-4 text-emerald-500"></i> 登録された課題一覧
+                    </h2>
+                    <span class="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full" id="assignmentsCountBadge">0件</span>
                 </div>
+                <div id="allAssignmentsList" class="space-y-2"></div>
             </div>
         </section>
 
         <!-- TAB CONTENT: SETTINGS -->
-        <section id="tab-settings" class="hidden space-y-4">
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-5">
+        <section id="tab-settings" class="hidden space-y-3">
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-4">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-sm border-b pb-2 mb-3">アカウント</h3>
-                    <p class="text-xs text-slate-600">ログイン中: <span id="settingsUserEmail" class="font-bold text-indigo-600"></span></p>
+                    <h3 class="font-bold text-slate-800 text-xs border-b pb-1.5 mb-2.5">アカウント</h3>
+                    <p class="text-[11px] text-slate-600 truncate">ログイン中: <span id="settingsUserEmail" class="font-bold text-indigo-600"></span></p>
                 </div>
-
                 <div>
-                    <h3 class="font-bold text-slate-800 text-sm border-b pb-2 mb-3">データのリセット</h3>
-                    <div class="space-y-3">
-                        <button onclick="confirmResetMasterTimetable()" class="w-full py-2.5 bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold rounded-xl text-xs transition">
-                            基本時間割をクリア
-                        </button>
-                        <button onclick="confirmResetAllData()" class="w-full py-2.5 bg-rose-600 text-white hover:bg-rose-700 font-bold rounded-xl text-xs shadow-md transition">
+                    <h3 class="font-bold text-slate-800 text-xs border-b pb-1.5 mb-2.5">データ管理</h3>
+                    <div class="space-y-2">
+                        <button onclick="confirmResetAllData()" class="w-full py-2.5 bg-rose-600 text-white hover:bg-rose-700 font-bold rounded-xl text-xs shadow-sm transition">
                             すべてのデータを初期化
                         </button>
                     </div>
                 </div>
-
-                <div class="border-t pt-4">
+                <div class="border-t pt-3">
                     <button onclick="requestLogout()" class="w-full py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs transition">
                         ログアウト
                     </button>
@@ -184,82 +179,74 @@
         </section>
     </main>
 
-    <!-- Bottom Navigation (Mobile Native Feel) -->
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 flex justify-around py-2 shadow-2xl">
-        <button onclick="switchTab('home')" id="nav-home-mb" class="flex flex-col items-center space-y-1 text-indigo-600">
-            <i data-lucide="home" class="w-5 h-5"></i>
-            <span class="text-[10px] font-bold">ホーム</span>
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 flex justify-around py-2 shadow-2xl">
+        <button onclick="switchTab('home')" id="nav-home-mb" class="flex flex-col items-center space-y-0.5 text-indigo-600">
+            <i data-lucide="home" class="w-5 h-5"></i><span class="text-[10px] font-bold">ホーム</span>
         </button>
-        <button onclick="switchTab('calendar')" id="nav-calendar-mb" class="flex flex-col items-center space-y-1 text-slate-400">
-            <i data-lucide="calendar-days" class="w-5 h-5"></i>
-            <span class="text-[10px] font-bold">カレンダー</span>
+        <button onclick="switchTab('calendar')" id="nav-calendar-mb" class="flex flex-col items-center space-y-0.5 text-slate-400">
+            <i data-lucide="calendar-days" class="w-5 h-5"></i><span class="text-[10px] font-bold">カレンダー</span>
         </button>
-        <button onclick="switchTab('settings')" id="nav-settings-mb" class="flex flex-col items-center space-y-1 text-slate-400">
-            <i data-lucide="settings" class="w-5 h-5"></i>
-            <span class="text-[10px] font-bold">設定</span>
+        <button onclick="switchTab('assignments')" id="nav-assignments-mb" class="flex flex-col items-center space-y-0.5 text-slate-400">
+            <i data-lucide="file-check-2" class="w-5 h-5"></i><span class="text-[10px] font-bold">課題</span>
+        </button>
+        <button onclick="switchTab('settings')" id="nav-settings-mb" class="flex flex-col items-center space-y-0.5 text-slate-400">
+            <i data-lucide="settings" class="w-5 h-5"></i><span class="text-[10px] font-bold">設定</span>
         </button>
     </nav>
 
-    <!-- MODAL 1: Master Timetable Edit (Bottom Sheet Mobile) -->
-    <div id="masterTimetableModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] flex flex-col">
-            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-3xl sm:rounded-t-2xl">
-                <h3 class="font-bold text-slate-800 text-base">基本時間割の編集</h3>
-                <button onclick="closeMasterTimetableModal()" class="text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
+    <!-- MODAL: Month & Year Picker -->
+    <div id="monthPickerModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-5 space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-slate-800 text-sm">年月を選択</h3>
+                <button onclick="closeMonthPickerModal()" class="text-slate-400 p-1"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-            <div class="p-5 overflow-y-auto space-y-4 flex-1">
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">曜日</label>
-                        <select id="mtDaySelect" class="w-full px-3 py-2.5 border rounded-xl text-xs bg-white">
-                            <option value="1">月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option>
-                            <option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option><option value="0">日曜日</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">時限</label>
-                        <select id="mtPeriodSelect" class="w-full px-3 py-2.5 border rounded-xl text-xs bg-white">
-                            <option value="1">1限</option><option value="2">2限</option><option value="3">3限</option>
-                            <option value="4">4限</option><option value="5">5限</option><option value="6">6限</option><option value="7">7限</option>
-                        </select>
-                    </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 mb-1">年</label>
+                    <select id="pickerYearSelect" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold"></select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-1">教科名</label>
-                    <input type="text" id="mtSubjectInput" class="w-full px-3 py-2.5 border rounded-xl text-xs" placeholder="例: 数学I">
+                    <label class="block text-[10px] font-bold text-slate-500 mb-1">月</label>
+                    <select id="pickerMonthSelect" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold">
+                        <option value="0">1月</option><option value="1">2月</option><option value="2">3月</option>
+                        <option value="3">4月</option><option value="4">5月</option><option value="5">6月</option>
+                        <option value="6">7月</option><option value="7">8月</option><option value="8">9月</option>
+                        <option value="9">10月</option><option value="10">11月</option><option value="11">12月</option>
+                    </select>
                 </div>
-                <div class="pt-2 flex gap-3">
-                    <button onclick="confirmResetMasterTimetable()" class="flex-1 py-2.5 bg-rose-50 text-rose-700 font-bold rounded-xl text-xs">全クリア</button>
-                    <button onclick="saveMasterTimetableCell()" class="flex-1 py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">保存</button>
-                </div>
+                <button onclick="applySelectedMonthYear()" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">
+                    表示する
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 2: Day Detail & Edit (Calendar Day Click / Bottom Sheet) -->
-    <div id="dayDetailModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] flex flex-col">
-            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-3xl sm:rounded-t-2xl">
+    <!-- MODAL: Day Detail & Edit -->
+    <div id="dayDetailModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-0 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-t-3xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col">
+            <div class="p-3.5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-3xl">
                 <div>
-                    <h3 id="dayDetailModalTitle" class="font-extrabold text-slate-800 text-base">2026年11月5日</h3>
+                    <h3 id="dayDetailModalTitle" class="font-extrabold text-slate-800 text-sm"></h3>
                     <p id="dayDetailModalSubtitle" class="text-[10px] font-bold text-rose-500"></p>
                 </div>
                 <button onclick="closeDayDetailModal()" class="text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
             
-            <div class="p-4 overflow-y-auto space-y-4 flex-1">
+            <div class="p-3.5 overflow-y-auto space-y-3.5 flex-1 text-xs">
                 <div>
-                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">登録されている予定</h4>
-                    <div id="dayEventsList" class="space-y-2"></div>
+                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">登録されている予定</h4>
+                    <div id="dayEventsList" class="space-y-1.5"></div>
                 </div>
 
                 <div class="border-t pt-3">
-                    <h4 class="text-xs font-bold text-slate-700 mb-2">新規追加</h4>
-                    <div class="space-y-3">
+                    <h4 class="font-bold text-slate-700 mb-2 text-xs">新規追加</h4>
+                    <div class="space-y-2.5">
                         <select id="eventTypeSelect" onchange="toggleEventTypeFields()" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold">
-                            <option value="change">🚨 時間割変更</option>
-                            <option value="belonging">🎒 持ち物</option>
-                            <option value="assignment">📝 課題提出日</option>
+                            <option value="change">時間割変更</option>
+                            <option value="belonging">持ち物</option>
+                            <option value="assignment">課題提出日</option>
                         </select>
 
                         <div id="fieldTimetableChange" class="grid grid-cols-2 gap-2">
@@ -288,18 +275,18 @@
         </div>
     </div>
 
-    <!-- MODAL 3: Confirm Dialog -->
+    <!-- MODAL: Confirm Dialog -->
     <div id="confirmModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-5 text-center space-y-3">
             <div class="mx-auto w-10 h-10 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center">
                 <i data-lucide="alert-triangle" class="w-5 h-5"></i>
             </div>
             <div>
-                <h3 class="text-base font-bold text-slate-800" id="confirmModalTitle">確認</h3>
+                <h3 class="text-sm font-bold text-slate-800" id="confirmModalTitle">確認</h3>
                 <p class="text-xs text-slate-500 mt-1" id="confirmModalMsg">実行してもよろしいですか？</p>
             </div>
             <div class="grid grid-cols-2 gap-2 pt-2">
-                <button onclick="closeConfirmModal(false)" class="w-full py-2 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs">キャンセル</button>
+                <button onclick="closeConfirmModal()" class="w-full py-2 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs">キャンセル</button>
                 <button id="confirmExecuteBtn" class="w-full py-2 bg-rose-600 text-white font-bold rounded-xl text-xs shadow-md">OK</button>
             </div>
         </div>
@@ -309,7 +296,6 @@
     <script>
         let currentUser = null;
         let selectedCalendarDate = new Date();
-        let selectedDayTabNum = new Date().getDay(); // 0-6
         let activeDayKey = null;
         let confirmActionCallback = null;
 
@@ -381,6 +367,7 @@
                 document.getElementById('settingsUserEmail').innerText = currentUser;
                 renderWeeklyTimetable();
                 renderCalendar();
+                renderAssignmentsTab();
             } else {
                 document.getElementById('authView').classList.remove('hidden');
             }
@@ -410,14 +397,15 @@
         }
 
         function switchTab(tabName) {
-            ['home', 'calendar', 'settings'].forEach(tab => {
+            ['home', 'calendar', 'assignments', 'settings'].forEach(tab => {
                 document.getElementById(`tab-${tab}`).classList.add('hidden');
                 const mbBtn = document.getElementById(`nav-${tab}-mb`);
-                if (mbBtn) mbBtn.className = tab === tabName ? "flex flex-col items-center space-y-1 text-indigo-600" : "flex flex-col items-center space-y-1 text-slate-400";
+                if (mbBtn) mbBtn.className = tab === tabName ? "flex flex-col items-center space-y-0.5 text-indigo-600" : "flex flex-col items-center space-y-0.5 text-slate-400";
             });
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
             if (tabName === 'home') renderWeeklyTimetable();
             if (tabName === 'calendar') renderCalendar();
+            if (tabName === 'assignments') renderAssignmentsTab();
         }
 
         function renderWeeklyTimetable() {
@@ -427,10 +415,6 @@
             const monday = new Date(today); monday.setDate(today.getDate() + mondayOffset);
             const holidays = getJapaneseHolidays(today.getFullYear());
 
-            const weekDates = {};
-            const dayTabContainer = document.getElementById('dayTabContainer');
-            dayTabContainer.innerHTML = '';
-
             const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
             const order = [1, 2, 3, 4, 5, 6, 0];
 
@@ -439,87 +423,82 @@
                 const offset = dayNum === 0 ? 6 : dayNum - 1;
                 dayDate.setDate(monday.getDate() + offset);
                 const dateKey = formatDateKey(dayDate);
-                weekDates[dayNum] = { date: dayDate, dateKey: dateKey, holiday: holidays[dateKey] };
+                const holidayName = holidays[dateKey];
+                const isTodayCol = dateKey === formatDateKey(today);
 
-                const isSelected = selectedDayTabNum === dayNum;
-                const tabBtn = document.createElement('button');
-                tabBtn.onclick = () => { selectedDayTabNum = dayNum; renderWeeklyTimetable(); };
-                tabBtn.className = `flex-1 py-2 rounded-xl text-center flex flex-col items-center transition ${isSelected ? 'bg-indigo-600 text-white shadow-md font-extrabold' : 'hover:bg-slate-50 text-slate-600 font-bold'}`;
-                tabBtn.innerHTML = `
-                    <span class="text-[10px] opacity-80">${dayDate.getMonth()+1}/${dayDate.getDate()}</span>
-                    <span class="text-xs">${dayNames[dayNum]}</span>
-                `;
-                dayTabContainer.appendChild(tabBtn);
+                const headEl = document.getElementById(`h-head-${dayNum}`);
+                if (headEl) {
+                    headEl.innerHTML = `${dayNames[dayNum]}<br><span class="text-[9px] text-slate-400">${dayDate.getMonth()+1}/${dayDate.getDate()}</span>`;
+                    if (isTodayCol) {
+                        headEl.className = "p-1.5 font-extrabold text-indigo-600 bg-indigo-50 border-t-2 border-indigo-500";
+                    } else {
+                        headEl.className = dayNum === 0 ? "bg-rose-50/50 p-1.5 font-bold text-rose-600" : (dayNum === 6 ? "bg-blue-50/50 p-1.5 font-bold text-blue-600" : "bg-slate-50 p-1.5 font-bold text-slate-600");
+                    }
+                }
+
+                for (let p = 1; p <= 7; p++) {
+                    const cell = document.getElementById(`cell-${dayNum}-${p}`);
+                    if (!cell) continue;
+
+                    const eventsForDay = dayEvents[dateKey] || [];
+                    const changeEvent = eventsForDay.find(e => e.type === 'change' && parseInt(e.period) === p);
+                    const masterSubject = masterTimetable[dayNum] ? masterTimetable[dayNum][p] : '';
+
+                    let baseStyle = "p-1 min-h-[48px] flex flex-col justify-center items-center text-[10px] cursor-pointer ";
+                    if (isTodayCol) {
+                        baseStyle += "bg-indigo-50/30 border-x border-indigo-200 font-semibold ";
+                    }
+
+                    if (changeEvent) {
+                        cell.className = baseStyle + "bg-rose-50 text-rose-900 border border-rose-200 rounded font-bold";
+                        cell.innerHTML = `<span class="text-[8px] text-rose-600 font-extrabold">変</span><span class="truncate w-full text-center">${escapeHtml(changeEvent.subject)}</span>`;
+                    } else if (holidayName) {
+                        cell.className = baseStyle + "bg-rose-50/40 text-rose-400";
+                        cell.innerHTML = `<span>祝日</span>`;
+                    } else if ((dayNum === 0 || dayNum === 6) && !masterSubject) {
+                        cell.className = baseStyle + "bg-slate-50 text-slate-300";
+                        cell.innerHTML = `<span>-</span>`;
+                    } else {
+                        cell.className = baseStyle + "bg-white text-slate-700";
+                        cell.innerHTML = `<span class="truncate w-full text-center">${masterSubject ? escapeHtml(masterSubject) : '-'}</span>`;
+                    }
+                    cell.onclick = () => openDayDetailModal(dateKey);
+                }
             });
-
-            const activeInfo = weekDates[selectedDayTabNum];
-            document.getElementById('selectedDayTitle').innerText = `${dayNames[selectedDayTabNum]}曜日の授業 (${activeInfo.date.getMonth()+1}/${activeInfo.date.getDate()})`;
-
-            const holidayBadge = document.getElementById('selectedDayHolidayBadge');
-            if (activeInfo.holiday) {
-                holidayBadge.innerText = activeInfo.holiday;
-                holidayBadge.classList.remove('hidden');
-            } else {
-                holidayBadge.classList.add('hidden');
-            }
-
-            const listEl = document.getElementById('dailyPeriodList');
-            listEl.innerHTML = '';
-
-            for (let p = 1; p <= 7; p++) {
-                if (p === 7 && selectedDayTabNum !== 2) {
-                    const events = dayEvents[activeInfo.dateKey] || [];
-                    if (!events.some(e => e.type === 'change' && parseInt(e.period) === 7)) continue;
-                }
-
-                const eventsForDay = dayEvents[activeInfo.dateKey] || [];
-                const changeEvent = eventsForDay.find(e => e.type === 'change' && parseInt(e.period) === p);
-                const masterSubject = masterTimetable[selectedDayTabNum] ? masterTimetable[selectedDayTabNum][p] : '';
-
-                const itemCard = document.createElement('div');
-                itemCard.className = "flex items-center p-3 rounded-xl border text-xs justify-between";
-
-                if (changeEvent) {
-                    itemCard.className += " bg-rose-50 border-rose-200 text-rose-900";
-                    itemCard.innerHTML = `
-                        <div class="flex items-center space-x-3">
-                            <span class="font-extrabold bg-rose-600 text-white px-2 py-0.5 rounded-lg text-[10px]">${p}限</span>
-                            <span class="font-bold text-sm">${escapeHtml(changeEvent.subject)}</span>
-                        </div>
-                        <span class="text-[10px] font-extrabold text-rose-600 border border-rose-300 px-1.5 py-0.5 rounded">🚨 変更</span>
-                    `;
-                } else if (activeInfo.holiday) {
-                    itemCard.className += " bg-slate-50 border-slate-100 text-slate-400";
-                    itemCard.innerHTML = `<span class="font-bold text-slate-400">${p}限: 休校日 (祝日)</span>`;
-                } else {
-                    itemCard.className += " bg-slate-50/50 border-slate-200 text-slate-700";
-                    itemCard.innerHTML = `
-                        <div class="flex items-center space-x-3">
-                            <span class="font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded-lg text-[10px]">${p}限</span>
-                            <span class="font-bold text-sm">${masterSubject ? escapeHtml(masterSubject) : '<span class="text-slate-300 font-normal">-</span>'}</span>
-                        </div>
-                    `;
-                }
-                listEl.appendChild(itemCard);
-            }
 
             renderTodaySummary();
         }
 
         function renderTodaySummary() {
-            const todayKey = formatDateKey(new Date());
+            const today = new Date();
+            const todayKey = formatDateKey(today);
             const todayEvents = dayEvents[todayKey] || [];
 
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            const tomorrowKey = formatDateKey(tomorrow);
+            const tomorrowEvents = dayEvents[tomorrowKey] || [];
+
+            // Today Belongings
             const belongingsList = document.getElementById('todayBelongingsList');
             const belongings = todayEvents.filter(e => e.type === 'belonging');
             if (belongings.length > 0) {
-                belongingsList.innerHTML = belongings.map(b => `<li class="font-bold text-purple-900 bg-purple-50 p-2 rounded-lg border border-purple-100">🎒 ${escapeHtml(b.title)}</li>`).join('');
+                belongingsList.innerHTML = belongings.map(b => `<li class="font-bold text-purple-900 bg-purple-50 p-2 rounded-xl border border-purple-100">${escapeHtml(b.title)}</li>`).join('');
             } else {
-                belongingsList.innerHTML = `<li class="text-slate-400 italic">持ち物はありません</li>`;
+                belongingsList.innerHTML = `<li class="text-slate-400 italic">本日の持ち物はありません</li>`;
             }
 
+            // Tomorrow Belongings
+            const tomorrowBelongingsList = document.getElementById('tomorrowBelongingsList');
+            const tomorrowBelongings = tomorrowEvents.filter(e => e.type === 'belonging');
+            if (tomorrowBelongings.length > 0) {
+                tomorrowBelongingsList.innerHTML = tomorrowBelongings.map(b => `<li class="font-bold text-purple-900 bg-purple-50 p-2 rounded-xl border border-purple-100">${escapeHtml(b.title)}</li>`).join('');
+            } else {
+                tomorrowBelongingsList.innerHTML = `<li class="text-slate-400 italic">明日の持ち物はありません</li>`;
+            }
+
+            // Upcoming Assignments
             const upcomingList = document.getElementById('upcomingAssignmentsList');
-            const today = new Date();
             const sevenDaysLater = new Date(); sevenDaysLater.setDate(today.getDate() + 7);
 
             let upcomingAssignments = [];
@@ -532,9 +511,9 @@
 
             if (upcomingAssignments.length > 0) {
                 upcomingList.innerHTML = upcomingAssignments.map(a => `
-                    <li class="flex justify-between items-center bg-emerald-50 p-2 rounded-lg border border-emerald-100 text-emerald-900 font-bold">
-                        <span>📝 ${escapeHtml(a.title)}</span>
-                        <span class="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">${a.dateKey.slice(5)} ${a.time || ''}</span>
+                    <li class="flex justify-between items-center bg-emerald-50 p-2 rounded-xl border border-emerald-100 text-emerald-900 font-bold">
+                        <span>${escapeHtml(a.title)}</span>
+                        <span class="text-[9px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded">${a.dateKey.slice(5)} ${a.time || ''}</span>
                     </li>
                 `).join('');
             } else {
@@ -564,7 +543,7 @@
                 const isHoliday = !!holidays[dateKey];
 
                 const dayCell = document.createElement('div');
-                dayCell.className = "min-h-[60px] p-1 border-t border-slate-100 cursor-pointer flex flex-col justify-start";
+                dayCell.className = "min-h-[55px] p-1 border-t border-slate-100 cursor-pointer flex flex-col justify-start hover:bg-indigo-50/20 transition";
                 dayCell.onclick = () => openDayDetailModal(dateKey);
 
                 let numClass = "text-slate-700 font-bold text-xs";
@@ -574,13 +553,46 @@
                 let html = `<span class="${numClass}">${day}</span>`;
                 const events = dayEvents[dateKey] || [];
                 events.forEach(ev => {
-                    if (ev.type === 'change') html += `<div class="w-2 h-2 rounded-full bg-rose-500 my-0.5"></div>`;
-                    if (ev.type === 'belonging') html += `<div class="w-2 h-2 rounded-full bg-purple-500 my-0.5"></div>`;
-                    if (ev.type === 'assignment') html += `<div class="w-2 h-2 rounded-full bg-emerald-500 my-0.5"></div>`;
+                    if (ev.type === 'change') html += `<div class="w-1.5 h-1.5 rounded-full bg-rose-500 my-0.5 inline-block mr-0.5"></div>`;
+                    if (ev.type === 'belonging') html += `<div class="w-1.5 h-1.5 rounded-full bg-purple-500 my-0.5 inline-block mr-0.5"></div>`;
+                    if (ev.type === 'assignment') html += `<div class="w-1.5 h-1.5 rounded-full bg-emerald-500 my-0.5 inline-block"></div>`;
                 });
                 dayCell.innerHTML = html;
                 grid.appendChild(dayCell);
             }
+        }
+
+        function renderAssignmentsTab() {
+            const listEl = document.getElementById('allAssignmentsList');
+            let allAssignments = [];
+            Object.keys(dayEvents).forEach(dateKey => {
+                dayEvents[dateKey].forEach((ev, idx) => {
+                    if (ev.type === 'assignment') {
+                        allAssignments.push({ ...ev, dateKey, originalIndex: idx });
+                    }
+                });
+            });
+
+            allAssignments.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
+            document.getElementById('assignmentsCountBadge').innerText = `${allAssignments.length}件`;
+
+            if (allAssignments.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-400 italic p-4 text-center">登録されている課題はありません</p>`;
+                return;
+            }
+
+            listEl.innerHTML = allAssignments.map(a => `
+                <div class="flex justify-between items-center p-2.5 bg-slate-50 border rounded-xl text-xs font-bold">
+                    <div>
+                        <span class="text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded mr-1.5 text-[10px]">${a.dateKey} ${a.time || ''}</span>
+                        <span class="text-slate-700">${escapeHtml(a.title)}</span>
+                    </div>
+                    <button onclick="requestDeleteSpecificAssignment('${a.dateKey}', ${a.originalIndex})" class="text-slate-400 hover:text-rose-600 p-1">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
         }
 
         function changeMonth(offset) {
@@ -588,45 +600,56 @@
             renderCalendar();
         }
 
-        function openMasterTimetableModal() {
-            document.getElementById('masterTimetableModal').classList.remove('opacity-0', 'pointer-events-none');
-        }
-        function closeMasterTimetableModal() {
-            document.getElementById('masterTimetableModal').classList.add('opacity-0', 'pointer-events-none');
+        // Month Picker Modal
+        function openMonthPickerModal() {
+            const yearSelect = document.getElementById('pickerYearSelect');
+            const monthSelect = document.getElementById('pickerMonthSelect');
+            const currentYear = selectedCalendarDate.getFullYear();
+            const currentMonth = selectedCalendarDate.getMonth();
+
+            yearSelect.innerHTML = '';
+            for (let y = currentYear - 3; y <= currentYear + 3; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.innerText = `${y}年`;
+                if (y === currentYear) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+            monthSelect.value = currentMonth;
+
+            document.getElementById('monthPickerModal').classList.remove('opacity-0', 'pointer-events-none');
         }
 
-        function saveMasterTimetableCell() {
-            const day = document.getElementById('mtDaySelect').value;
-            const period = document.getElementById('mtPeriodSelect').value;
-            const subject = document.getElementById('mtSubjectInput').value.trim();
-
-            if (!masterTimetable[day]) masterTimetable[day] = {};
-            masterTimetable[day][period] = subject;
-            saveMasterData();
-            renderWeeklyTimetable();
-            closeMasterTimetableModal();
-            document.getElementById('mtSubjectInput').value = '';
+        function closeMonthPickerModal() {
+            document.getElementById('monthPickerModal').classList.add('opacity-0', 'pointer-events-none');
         }
 
-        function confirmResetMasterTimetable() {
-            openConfirmModal("時間割をクリアしますか？", "基本時間割が削除されます。", () => {
-                masterTimetable = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 0: {} };
-                saveMasterData();
-                renderWeeklyTimetable();
-                closeMasterTimetableModal();
-            });
+        function applySelectedMonthYear() {
+            const year = parseInt(document.getElementById('pickerYearSelect').value);
+            const month = parseInt(document.getElementById('pickerMonthSelect').value);
+            selectedCalendarDate.setFullYear(year);
+            selectedCalendarDate.setMonth(month);
+            renderCalendar();
+            closeMonthPickerModal();
         }
 
         function openDayDetailModal(dateKey) {
             activeDayKey = dateKey;
             const [y, m, d] = dateKey.split('-').map(Number);
             document.getElementById('dayDetailModalTitle').innerText = `${y}年${m}月${d}日`;
+            
+            const holidays = getJapaneseHolidays(y);
+            const holidayName = holidays[dateKey];
+            document.getElementById('dayDetailModalSubtitle').innerText = holidayName ? `祝日: ${holidayName}` : '';
+
             renderDayEventsList();
             document.getElementById('dayDetailModal').classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
         }
 
         function closeDayDetailModal() {
             document.getElementById('dayDetailModal').classList.add('opacity-0', 'pointer-events-none');
+            document.body.classList.remove('modal-active');
         }
 
         function renderDayEventsList() {
@@ -638,8 +661,8 @@
             }
             listEl.innerHTML = events.map((ev, i) => `
                 <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs font-bold">
-                    <span>${ev.type === 'change' ? '🚨 '+ev.period+'限:'+escapeHtml(ev.subject) : ev.type === 'belonging' ? '🎒 '+escapeHtml(ev.title) : '📝 '+escapeHtml(ev.title)}</span>
-                    <button onclick="requestDeleteEvent(${i})" class="text-slate-400 hover:text-rose-600"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    <span>${ev.type === 'change' ? '時間割変更: '+ev.period+'限 ('+escapeHtml(ev.subject)+')' : ev.type === 'belonging' ? '持ち物: '+escapeHtml(ev.title) : '課題提出日: '+escapeHtml(ev.title)}</span>
+                    <button onclick="requestDeleteEvent(${i})" class="text-slate-400 hover:text-rose-600 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                 </div>
             `).join('');
             lucide.createIcons();
@@ -658,17 +681,21 @@
                 if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
                 if (type === 'change') {
                     dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period: document.getElementById('changePeriodSelect').value, subject: document.getElementById('changeSubjectInput').value.trim() || '変更なし' });
+                    document.getElementById('changeSubjectInput').value = '';
                 } else if (type === 'belonging') {
                     const title = document.getElementById('belongingInput').value.trim();
                     if (title) dayEvents[activeDayKey].push({ id: Date.now(), type: 'belonging', title });
+                    document.getElementById('belongingInput').value = '';
                 } else if (type === 'assignment') {
                     const title = document.getElementById('assignmentTitleInput').value.trim();
                     if (title) dayEvents[activeDayKey].push({ id: Date.now(), type: 'assignment', title, time: document.getElementById('assignmentTimeInput').value });
+                    document.getElementById('assignmentTitleInput').value = '';
                 }
                 saveEventsData();
                 renderDayEventsList();
                 renderCalendar();
                 renderWeeklyTimetable();
+                renderAssignmentsTab();
             });
         }
 
@@ -681,6 +708,20 @@
                     renderDayEventsList();
                     renderCalendar();
                     renderWeeklyTimetable();
+                    renderAssignmentsTab();
+                }
+            });
+        }
+
+        function requestDeleteSpecificAssignment(dateKey, index) {
+            openConfirmModal("課題を削除しますか？", "元に戻すことはできません。", () => {
+                if (dayEvents[dateKey]) {
+                    dayEvents[dateKey].splice(index, 1);
+                    if (dayEvents[dateKey].length === 0) delete dayEvents[dateKey];
+                    saveEventsData();
+                    renderAssignmentsTab();
+                    renderCalendar();
+                    renderWeeklyTimetable();
                 }
             });
         }
@@ -690,8 +731,7 @@
                 localStorage.clear();
                 masterTimetable = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 0: {} };
                 dayEvents = {};
-                renderWeeklyTimetable();
-                renderCalendar();
+                checkAuthStatus();
             });
         }
 
@@ -702,7 +742,7 @@
             document.getElementById('confirmModal').classList.remove('opacity-0', 'pointer-events-none');
             document.getElementById('confirmExecuteBtn').onclick = () => {
                 if (confirmActionCallback) confirmActionCallback();
-                closeConfirmModal(true);
+                closeConfirmModal();
             };
         }
 
@@ -711,7 +751,7 @@
         }
 
         function escapeHtml(str) {
-            return str ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+            return str ? str.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">") : '';
         }
     </script>
 </body>
