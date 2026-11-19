@@ -45,13 +45,13 @@
                 <span class="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">TODAY</span>
                 <h1 class="text-base font-extrabold text-slate-900 leading-tight" id="currentDateStr"></h1>
             </div>
-            <!-- カレンダータブでのみ表示されるテスト期間関連ボタン -->
+            <!-- カレンダータブでのみ表示されるテスト期間・月間削除ボタン -->
             <div id="testButtonHeaderContainer" class="hidden flex items-center gap-1.5">
                 <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm">
                     <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
                     <span>テスト期間</span>
                 </button>
-                <button onclick="confirmClearAllTests()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="すべてのテスト期間を削除">
+                <button onclick="confirmClearCurrentMonth()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="表示中の月の予定をすべて削除">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
             </div>
@@ -263,8 +263,8 @@
                     <button onclick="proceedToTestSubjects()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-md transition">
                         次へ（科目設定または期間のみ登録）
                     </button>
-                    <button onclick="confirmClearAllTests()" class="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs transition">
-                        登録済みのテスト期間をすべて削除
+                    <button onclick="confirmClearCurrentMonth()" class="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs transition">
+                        表示中の月の予定・テスト期間をすべて削除
                     </button>
                 </div>
             </div>
@@ -432,7 +432,6 @@
             Object.keys(dayEvents).forEach(dateKey => {
                 if (dateKey < todayKey) {
                     const originalLen = dayEvents[dateKey].length;
-                    // テスト科目（isTest === true）以外を削除
                     dayEvents[dateKey] = dayEvents[dateKey].filter(ev => ev.type === 'change' && ev.isTest);
                     if (dayEvents[dateKey].length !== originalLen) {
                         modified = true;
@@ -603,6 +602,7 @@
                             cell.innerHTML = `<span>-</span>`;
                         }
                     } else if (calendarChangeEvent) {
+                        // カレンダーで時間割変更をした際のみ、ホームの今週の時間割に変更を反映
                         if (calendarChangeEvent.subject === '-') {
                             cell.className = baseStyle + "bg-white text-slate-300";
                             cell.innerHTML = `<span>-</span>`;
@@ -801,6 +801,65 @@
             closeMonthPickerModal();
         }
 
+        // 表示中の月の「時間割変更」「持ち物」「課題提出日」「イベント」「テスト期間」をすべて消す
+        function confirmClearCurrentMonth() {
+            const year = selectedCalendarDate.getFullYear();
+            const month = selectedCalendarDate.getMonth();
+            const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+            const monthFirstKey = `${monthPrefix}-01`;
+            const lastDayNum = new Date(year, month + 1, 0).getDate();
+            const monthLastKey = `${monthPrefix}-${String(lastDayNum).padStart(2, '0')}`;
+
+            openConfirmModal(
+                `${year}年${month + 1}月の予定を削除`,
+                `${year}年${month + 1}月の「時間割変更」「持ち物」「課題提出日」「イベント」「テスト期間」をすべて削除しますか？`,
+                () => {
+                    // 1. 当該月の dayEvents を削除
+                    Object.keys(dayEvents).forEach(dateKey => {
+                        if (dateKey.startsWith(monthPrefix)) {
+                            delete dayEvents[dateKey];
+                        }
+                    });
+
+                    // 2. 当該月と重なる testRanges を削除またはトリミング
+                    const updatedRanges = [];
+                    testRanges.forEach(range => {
+                        if (range.endDate < monthFirstKey || range.startDate > monthLastKey) {
+                            // 対象月と一切重ならないテスト期間はそのまま残す
+                            updatedRanges.push(range);
+                        } else {
+                            // 対象月より前に始まる部分があれば残す
+                            if (range.startDate < monthFirstKey) {
+                                const prevDay = new Date(year, month, 0);
+                                updatedRanges.push({
+                                    ...range,
+                                    id: Date.now() + Math.random(),
+                                    endDate: formatDateKey(prevDay)
+                                });
+                            }
+                            // 対象月より後に終わる部分があれば残す
+                            if (range.endDate > monthLastKey) {
+                                const nextDay = new Date(year, month + 1, 1);
+                                updatedRanges.push({
+                                    ...range,
+                                    id: Date.now() + Math.random(),
+                                    startDate: formatDateKey(nextDay)
+                                });
+                            }
+                        }
+                    });
+
+                    testRanges = updatedRanges;
+                    saveEventsData();
+                    saveTestRangesData();
+                    renderWeeklyTimetable();
+                    renderCalendar();
+                    renderAssignmentsTab();
+                    closeTestPeriodModal();
+                }
+            );
+        }
+
         // Test Period Modal Logic (Weekdays & Non-Holidays Only)
         function openTestPeriodModal() {
             const todayStr = formatDateKey(new Date());
@@ -826,21 +885,6 @@
         function backToTestStep1() {
             document.getElementById('testStep1').classList.remove('hidden');
             document.getElementById('testStep2').classList.add('hidden');
-        }
-
-        function confirmClearAllTests() {
-            openConfirmModal("テスト期間の削除", "登録されているすべてのテスト期間・科目を削除しますか？", () => {
-                testRanges = [];
-                Object.keys(dayEvents).forEach(dateKey => {
-                    dayEvents[dateKey] = dayEvents[dateKey].filter(e => !(e.type === 'change' && e.isTest));
-                    if (dayEvents[dateKey].length === 0) delete dayEvents[dateKey];
-                });
-                saveTestRangesData();
-                saveEventsData();
-                renderWeeklyTimetable();
-                renderCalendar();
-                closeTestPeriodModal();
-            });
         }
 
         function proceedToTestSubjects(specificRange = null) {
@@ -1000,7 +1044,6 @@
             const clearBtn = document.getElementById('clearPeriodBtn');
 
             if (mode === 'home') {
-                // ホームから開いた時は「登録されている時間割変更」の枠自体を消す
                 eventsListSection.classList.add('hidden');
                 addFormSection.classList.remove('border-t', 'pt-3');
                 selectWrapper.classList.add('hidden');
@@ -1117,7 +1160,7 @@
 
         function requestAddDayEvent() {
             if (activeModalMode === 'home') {
-                // ホームからの変更は基本時間割（masterTimetable）を更新し、カレンダーには反映させない
+                // ホームからの変更は基本時間割（masterTimetable）のみを更新し、カレンダーには反映させない
                 openConfirmModal("時間割を変更しますか？", "今週の時間割の科目を更新します。", () => {
                     const period = parseInt(document.getElementById('changePeriodSelect').value);
                     const subject = document.getElementById('changeSubjectInput').value.trim();
@@ -1139,7 +1182,7 @@
                 return;
             }
 
-            // カレンダーからの追加
+            // カレンダーからの追加（「時間割変更」はホームの今週の時間割にも反映される）
             openConfirmModal("追加しますか？", "選択した項目を登録します。", () => {
                 const type = document.getElementById('eventTypeSelect').value;
                 if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
