@@ -542,7 +542,6 @@
                 }
 
                 const eventsForDay = dayEvents[dateKey] || [];
-                // テスト科目（1〜4限）の登録状況を調べる
                 const dayTestSubjects = eventsForDay.filter(e => e.type === 'change' && e.isTest && parseInt(e.period) <= 4 && e.subject && e.subject.trim() !== '');
                 const hasAnyTestSubjectOnThisDay = dayTestSubjects.length > 0;
 
@@ -565,13 +564,11 @@
                                 cell.className = baseStyle + "bg-amber-50 text-amber-900 border border-amber-300 rounded font-bold";
                                 cell.innerHTML = `<span class="text-[8px] text-amber-700 font-extrabold">テスト</span><span class="truncate w-full text-center">${escapeHtml(testSubjObj.subject)}</span>`;
                             } else if (!hasAnyTestSubjectOnThisDay) {
-                                // その日の科目を全く入れなかった場合は4限目まで「-」を入れる
                                 cell.className = baseStyle + "bg-amber-50/40 text-amber-800/70";
                                 cell.innerHTML = `<span>-</span>`;
                             } else {
-                                // 科目が1つでも入っている日の空欄時限は「-」を入れず普通の空白にする
                                 cell.className = baseStyle + "bg-white text-slate-300";
-                                cell.innerHTML = ``;
+                                cell.innerHTML = `<span>-</span>`;
                             }
                         } else {
                             cell.className = baseStyle + "bg-slate-50 text-slate-300";
@@ -579,12 +576,11 @@
                         }
                     } else if (changeEvent) {
                         if (changeEvent.subject === '-') {
-                            // 「時間を消す」で消去された場合は、元からなかったかのように「-」を表示（「変更」表示なし）
                             cell.className = baseStyle + "bg-white text-slate-300";
                             cell.innerHTML = `<span>-</span>`;
                         } else {
-                            cell.className = baseStyle + "bg-rose-50 text-rose-900 border border-rose-200 rounded font-bold";
-                            cell.innerHTML = `<span class="text-[8px] text-rose-600 font-extrabold">変更</span><span class="truncate w-full text-center">${escapeHtml(changeEvent.subject)}</span>`;
+                            cell.className = baseStyle + "bg-white text-slate-700";
+                            cell.innerHTML = `<span class="truncate w-full text-center">${escapeHtml(changeEvent.subject)}</span>`;
                         }
                     } else if (holidayName) {
                         cell.className = baseStyle + "bg-rose-50/40 text-rose-400";
@@ -856,7 +852,6 @@
                 const holidays = getJapaneseHolidays(current.getFullYear());
                 const isHoliday = !!holidays[dateKey];
 
-                // 土日(0, 6)と祝日をスキップ
                 if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday) {
                     dayCount++;
                     const m = current.getMonth() + 1;
@@ -1057,7 +1052,7 @@
             listEl.innerHTML = filteredEvents.map(ev => {
                 let labelText = '';
                 if (ev.type === 'change') {
-                    labelText = `${ev.isTest ? '[テスト科目] ' : '時間割変更: '}${ev.period}限 (${escapeHtml(ev.subject)})`;
+                    labelText = `${ev.isTest ? '[テスト科目] ' : ''}${ev.period}限 (${escapeHtml(ev.subject)})`;
                 } else if (ev.type === 'belonging') {
                     labelText = `持ち物: ${escapeHtml(ev.title)}`;
                 } else if (ev.type === 'assignment') {
