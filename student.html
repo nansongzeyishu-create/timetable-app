@@ -602,14 +602,9 @@
                             cell.innerHTML = `<span>-</span>`;
                         }
                     } else if (calendarChangeEvent) {
-                        // カレンダーで時間割変更をした際のみ、ホームの今週の時間割に変更を反映
-                        if (calendarChangeEvent.subject === '-') {
-                            cell.className = baseStyle + "bg-white text-slate-300";
-                            cell.innerHTML = `<span>-</span>`;
-                        } else {
-                            cell.className = baseStyle + "bg-white text-slate-700";
-                            cell.innerHTML = `<span class="truncate w-full text-center">${escapeHtml(calendarChangeEvent.subject)}</span>`;
-                        }
+                        // カレンダーで時間割変更をした際のみ、前のように目立つスタイルと「変更」ラベルを表示
+                        cell.className = baseStyle + "bg-rose-50 text-rose-900 border border-rose-200 rounded font-bold";
+                        cell.innerHTML = `<span class="text-[8px] text-rose-600 font-extrabold">変更</span><span class="truncate w-full text-center">${escapeHtml(calendarChangeEvent.subject)}</span>`;
                     } else if (holidayName) {
                         cell.className = baseStyle + "bg-rose-50/40 text-rose-400";
                         cell.innerHTML = `<span>祝日</span>`;
@@ -814,21 +809,17 @@
                 `${year}年${month + 1}月の予定を削除`,
                 `${year}年${month + 1}月の「時間割変更」「持ち物」「課題提出日」「イベント」「テスト期間」をすべて削除しますか？`,
                 () => {
-                    // 1. 当該月の dayEvents を削除
                     Object.keys(dayEvents).forEach(dateKey => {
                         if (dateKey.startsWith(monthPrefix)) {
                             delete dayEvents[dateKey];
                         }
                     });
 
-                    // 2. 当該月と重なる testRanges を削除またはトリミング
                     const updatedRanges = [];
                     testRanges.forEach(range => {
                         if (range.endDate < monthFirstKey || range.startDate > monthLastKey) {
-                            // 対象月と一切重ならないテスト期間はそのまま残す
                             updatedRanges.push(range);
                         } else {
-                            // 対象月より前に始まる部分があれば残す
                             if (range.startDate < monthFirstKey) {
                                 const prevDay = new Date(year, month, 0);
                                 updatedRanges.push({
@@ -837,7 +828,6 @@
                                     endDate: formatDateKey(prevDay)
                                 });
                             }
-                            // 対象月より後に終わる部分があれば残す
                             if (range.endDate > monthLastKey) {
                                 const nextDay = new Date(year, month + 1, 1);
                                 updatedRanges.push({
@@ -1182,7 +1172,7 @@
                 return;
             }
 
-            // カレンダーからの追加（「時間割変更」はホームの今週の時間割にも反映される）
+            // カレンダーからの追加（「時間割変更」はホームの今週の時間割にも目立つように反映される）
             openConfirmModal("追加しますか？", "選択した項目を登録します。", () => {
                 const type = document.getElementById('eventTypeSelect').value;
                 if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
