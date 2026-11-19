@@ -302,12 +302,13 @@
                 <!-- Test Period Batch Actions Container -->
                 <div id="testPeriodActionsContainer" class="hidden"></div>
 
-                <div>
+                <!-- Registered Events List (Hidden when opened from Home timetable) -->
+                <div id="dayEventsListSection">
                     <h4 id="dayEventsListHeader" class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">登録されている予定</h4>
                     <div id="dayEventsList" class="space-y-1.5"></div>
                 </div>
 
-                <div class="border-t pt-3">
+                <div id="dayAddFormSection" class="border-t pt-3">
                     <h4 id="dayAddFormHeader" class="font-bold text-slate-700 mb-2 text-xs">新規追加</h4>
                     <div class="space-y-2.5">
                         <div id="eventTypeSelectWrapper">
@@ -423,9 +424,35 @@
             return `${y}-${m}-${d}`;
         }
 
+        // 過ぎた日の「時間割変更」「持ち物」「課題提出日」「イベント」を削除し、「テスト期間」だけ残す
+        function cleanupPastCalendarEvents() {
+            const todayKey = formatDateKey(new Date());
+            let modified = false;
+
+            Object.keys(dayEvents).forEach(dateKey => {
+                if (dateKey < todayKey) {
+                    const originalLen = dayEvents[dateKey].length;
+                    // テスト科目（isTest === true）以外を削除
+                    dayEvents[dateKey] = dayEvents[dateKey].filter(ev => ev.type === 'change' && ev.isTest);
+                    if (dayEvents[dateKey].length !== originalLen) {
+                        modified = true;
+                    }
+                    if (dayEvents[dateKey].length === 0) {
+                        delete dayEvents[dateKey];
+                        modified = true;
+                    }
+                }
+            });
+
+            if (modified) {
+                saveEventsData();
+            }
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             loadStoredData();
+            cleanupPastCalendarEvents();
             checkAuthStatus();
             renderHeaderDate();
         });
@@ -481,6 +508,7 @@
         }
 
         function switchTab(tabName) {
+            cleanupPastCalendarEvents();
             ['home', 'calendar', 'assignments', 'settings'].forEach(tab => {
                 document.getElementById(`tab-${tab}`).classList.add('hidden');
                 const mbBtn = document.getElementById(`nav-${tab}-mb`);
@@ -550,7 +578,7 @@
                     if (!cell) continue;
 
                     const testSubjObj = eventsForDay.find(e => e.type === 'change' && e.isTest && parseInt(e.period) === p);
-                    const changeEvent = eventsForDay.find(e => e.type === 'change' && !e.isTest && parseInt(e.period) === p);
+                    const calendarChangeEvent = eventsForDay.find(e => e.type === 'change' && !e.isTest && parseInt(e.period) === p);
                     const masterSubject = masterTimetable[dayNum] ? masterTimetable[dayNum][p] : '';
 
                     let baseStyle = "p-1 min-h-[48px] flex flex-col justify-center items-center text-[10px] cursor-pointer ";
@@ -574,13 +602,13 @@
                             cell.className = baseStyle + "bg-slate-50 text-slate-300";
                             cell.innerHTML = `<span>-</span>`;
                         }
-                    } else if (changeEvent) {
-                        if (changeEvent.subject === '-') {
+                    } else if (calendarChangeEvent) {
+                        if (calendarChangeEvent.subject === '-') {
                             cell.className = baseStyle + "bg-white text-slate-300";
                             cell.innerHTML = `<span>-</span>`;
                         } else {
                             cell.className = baseStyle + "bg-white text-slate-700";
-                            cell.innerHTML = `<span class="truncate w-full text-center">${escapeHtml(changeEvent.subject)}</span>`;
+                            cell.innerHTML = `<span class="truncate w-full text-center">${escapeHtml(calendarChangeEvent.subject)}</span>`;
                         }
                     } else if (holidayName) {
                         cell.className = baseStyle + "bg-rose-50/40 text-rose-400";
@@ -588,9 +616,12 @@
                     } else if ((dayNum === 0 || dayNum === 6) && !masterSubject) {
                         cell.className = baseStyle + "bg-slate-50 text-slate-300";
                         cell.innerHTML = `<span>-</span>`;
+                    } else if (!masterSubject) {
+                        cell.className = baseStyle + "bg-white text-slate-300";
+                        cell.innerHTML = `<span>-</span>`;
                     } else {
                         cell.className = baseStyle + "bg-white text-slate-700";
-                        cell.innerHTML = `<span class="truncate w-full text-center">${masterSubject ? escapeHtml(masterSubject) : '-'}</span>`;
+                        cell.innerHTML = `<span class="truncate w-full text-center">${escapeHtml(masterSubject)}</span>`;
                     }
                     cell.onclick = () => openDayDetailModal(dateKey, 'home', p);
                 }
@@ -649,6 +680,8 @@
         }
 
         function renderCalendar() {
+            cleanupPastCalendarEvents();
+
             const year = selectedCalendarDate.getFullYear();
             const month = selectedCalendarDate.getMonth();
             document.getElementById('calendarMonthLabel').innerText = `${year}年 ${month + 1}月`;
@@ -958,44 +991,49 @@
                 actionsContainer.classList.add('hidden');
             }
 
+            const eventsListSection = document.getElementById('dayEventsListSection');
+            const addFormSection = document.getElementById('dayAddFormSection');
             const selectWrapper = document.getElementById('eventTypeSelectWrapper');
             const eventTypeSelect = document.getElementById('eventTypeSelect');
-            const listHeader = document.getElementById('dayEventsListHeader');
             const formHeader = document.getElementById('dayAddFormHeader');
             const primaryBtn = document.getElementById('primaryAddEventBtn');
             const clearBtn = document.getElementById('clearPeriodBtn');
 
             if (mode === 'home') {
+                // ホームから開いた時は「登録されている時間割変更」の枠自体を消す
+                eventsListSection.classList.add('hidden');
+                addFormSection.classList.remove('border-t', 'pt-3');
                 selectWrapper.classList.add('hidden');
                 eventTypeSelect.value = 'change';
                 document.getElementById('changePeriodSelect').value = String(defaultPeriod);
-                listHeader.innerText = '登録されている時間割変更';
                 formHeader.innerText = `${defaultPeriod}限目の時間割を変更・消去`;
                 primaryBtn.innerText = '時間割を変更する';
                 clearBtn.classList.remove('hidden');
             } else {
+                eventsListSection.classList.remove('hidden');
+                addFormSection.classList.add('border-t', 'pt-3');
                 selectWrapper.classList.remove('hidden');
-                listHeader.innerText = '登録されている予定';
                 formHeader.innerText = '新規追加';
                 primaryBtn.innerText = '追加する';
                 clearBtn.classList.add('hidden');
+                renderDayEventsList();
             }
 
             toggleEventTypeFields();
-            renderDayEventsList();
             document.getElementById('dayDetailModal').classList.remove('opacity-0', 'pointer-events-none');
             document.body.classList.add('modal-active');
         }
 
+        // ホームから時間を消す（基本時間割を空にするのでカレンダーには反映されない）
         function requestClearPeriod() {
-            const period = document.getElementById('changePeriodSelect').value;
-            openConfirmModal("この時間を消しますか？", `${period}限目の授業を消去して「-」にします。`, () => {
-                if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
-                dayEvents[activeDayKey] = dayEvents[activeDayKey].filter(e => !(e.type === 'change' && !e.isTest && String(e.period) === String(period)));
-                dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period, subject: '-', isTest: false });
-                saveEventsData();
-                renderDayEventsList();
-                renderCalendar();
+            const period = parseInt(document.getElementById('changePeriodSelect').value);
+            openConfirmModal("この時間を消しますか？", `${period}限目の授業を消去します。`, () => {
+                const dateObj = new Date(activeDayKey + 'T00:00:00');
+                const dayOfWeek = dateObj.getDay();
+                if (masterTimetable[dayOfWeek]) {
+                    delete masterTimetable[dayOfWeek][period];
+                }
+                saveMasterData();
                 renderWeeklyTimetable();
                 closeDayDetailModal();
             });
@@ -1042,8 +1080,7 @@
             const allEvents = dayEvents[activeDayKey] || [];
 
             const filteredEvents = allEvents
-                .map((ev, originalIndex) => ({ ...ev, originalIndex }))
-                .filter(ev => activeModalMode === 'home' ? (ev.type === 'change' && !ev.isTest) : true);
+                .map((ev, originalIndex) => ({ ...ev, originalIndex }));
 
             if (filteredEvents.length === 0) {
                 listEl.innerHTML = `<p class="text-xs text-slate-400 italic">登録されている予定はありません</p>`;
@@ -1052,7 +1089,7 @@
             listEl.innerHTML = filteredEvents.map(ev => {
                 let labelText = '';
                 if (ev.type === 'change') {
-                    labelText = `${ev.isTest ? '[テスト科目] ' : ''}${ev.period}限 (${escapeHtml(ev.subject)})`;
+                    labelText = `${ev.isTest ? '[テスト科目] ' : '時間割変更: '}${ev.period}限 (${escapeHtml(ev.subject)})`;
                 } else if (ev.type === 'belonging') {
                     labelText = `持ち物: ${escapeHtml(ev.title)}`;
                 } else if (ev.type === 'assignment') {
@@ -1079,8 +1116,32 @@
         }
 
         function requestAddDayEvent() {
+            if (activeModalMode === 'home') {
+                // ホームからの変更は基本時間割（masterTimetable）を更新し、カレンダーには反映させない
+                openConfirmModal("時間割を変更しますか？", "今週の時間割の科目を更新します。", () => {
+                    const period = parseInt(document.getElementById('changePeriodSelect').value);
+                    const subject = document.getElementById('changeSubjectInput').value.trim();
+                    const dateObj = new Date(activeDayKey + 'T00:00:00');
+                    const dayOfWeek = dateObj.getDay();
+
+                    if (!masterTimetable[dayOfWeek]) masterTimetable[dayOfWeek] = {};
+                    if (subject) {
+                        masterTimetable[dayOfWeek][period] = subject;
+                    } else {
+                        delete masterTimetable[dayOfWeek][period];
+                    }
+
+                    document.getElementById('changeSubjectInput').value = '';
+                    saveMasterData();
+                    renderWeeklyTimetable();
+                    closeDayDetailModal();
+                });
+                return;
+            }
+
+            // カレンダーからの追加
             openConfirmModal("追加しますか？", "選択した項目を登録します。", () => {
-                const type = activeModalMode === 'home' ? 'change' : document.getElementById('eventTypeSelect').value;
+                const type = document.getElementById('eventTypeSelect').value;
                 if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
                 if (type === 'change') {
                     const period = document.getElementById('changePeriodSelect').value;
