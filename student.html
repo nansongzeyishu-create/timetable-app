@@ -64,7 +64,7 @@
                     <h2 class="font-extrabold text-slate-800 text-xs flex items-center gap-1.5">
                         <i data-lucide="clock" class="w-4 h-4 text-indigo-500"></i> 今週の時間割 (月〜日)
                     </h2>
-                    <span class="text-[10px] text-slate-400">マスをタップで時間割変更</span>
+                    <span class="text-[10px] text-slate-400">マスをタップで変更・消去</span>
                 </div>
                 <!-- Horizontal scrolling wrapper for 1-week grid -->
                 <div class="overflow-x-auto no-scrollbar">
@@ -234,20 +234,20 @@
         </div>
     </div>
 
-    <!-- MODAL: Test Period Setup & Subject Input (Weekdays Only) -->
+    <!-- MODAL: Test Period Setup & Subject Input (Weekdays & Non-Holidays Only) -->
     <div id="testPeriodModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-0 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-t-3xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
             <div class="p-3.5 border-b border-slate-200 flex justify-between items-center bg-amber-50 rounded-t-3xl">
                 <div class="flex items-center gap-2">
                     <i data-lucide="pen-tool" class="w-4 h-4 text-amber-600"></i>
-                    <h3 class="font-extrabold text-amber-900 text-sm">テスト期間・時間割設定 (平日のみ)</h3>
+                    <h3 class="font-extrabold text-amber-900 text-sm">テスト期間・時間割設定 (土日祝除外)</h3>
                 </div>
                 <button onclick="closeTestPeriodModal()" class="text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
 
             <!-- Step 1: Date Range Selection -->
             <div id="testStep1" class="p-4 space-y-4 text-xs">
-                <p class="text-slate-600 leading-relaxed">テストの開始日と終了日を選択してください（土日は自動的にスキップされ、平日のみ対象になります）。</p>
+                <p class="text-slate-600 leading-relaxed">テストの開始日と終了日を選択してください（土日と祝日は自動的にスキップされ、平日のみ対象になります）。</p>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 mb-1">開始日</label>
@@ -315,6 +315,7 @@
                                 <option value="change">時間割変更</option>
                                 <option value="belonging">持ち物</option>
                                 <option value="assignment">課題提出日</option>
+                                <option value="event">イベント</option>
                             </select>
                         </div>
 
@@ -335,9 +336,18 @@
                             <input type="time" id="assignmentTimeInput" value="08:40" class="w-full px-3 py-2 border rounded-xl text-xs">
                         </div>
 
-                        <button onclick="requestAddDayEvent()" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">
-                            追加する
-                        </button>
+                        <div id="fieldEvent" class="hidden">
+                            <input type="text" id="eventTitleInput" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="その日にあるイベント内容（例: 文化祭、遠足など）">
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-2" id="dayActionButtonsContainer">
+                            <button onclick="requestAddDayEvent()" id="primaryAddEventBtn" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">
+                                時間割を変更する
+                            </button>
+                            <button onclick="requestClearPeriod()" id="clearPeriodBtn" class="hidden w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-xl text-xs transition">
+                                この時間を消す
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -494,6 +504,8 @@
             const d = new Date(dateKey + 'T00:00:00');
             const dayOfWeek = d.getDay();
             if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+            const holidays = getJapaneseHolidays(d.getFullYear());
+            if (holidays[dateKey]) return false;
 
             return testRanges.some(range => {
                 return dateKey >= range.startDate && dateKey <= range.endDate;
@@ -529,11 +541,15 @@
                     }
                 }
 
+                const eventsForDay = dayEvents[dateKey] || [];
+                // テスト科目（1〜4限）の登録状況を調べる
+                const dayTestSubjects = eventsForDay.filter(e => e.type === 'change' && e.isTest && parseInt(e.period) <= 4 && e.subject && e.subject.trim() !== '');
+                const hasAnyTestSubjectOnThisDay = dayTestSubjects.length > 0;
+
                 for (let p = 1; p <= 7; p++) {
                     const cell = document.getElementById(`cell-${dayNum}-${p}`);
                     if (!cell) continue;
 
-                    const eventsForDay = dayEvents[dateKey] || [];
                     const testSubjObj = eventsForDay.find(e => e.type === 'change' && e.isTest && parseInt(e.period) === p);
                     const changeEvent = eventsForDay.find(e => e.type === 'change' && !e.isTest && parseInt(e.period) === p);
                     const masterSubject = masterTimetable[dayNum] ? masterTimetable[dayNum][p] : '';
@@ -545,15 +561,31 @@
 
                     if (inTest) {
                         if (p <= 4) {
-                            cell.className = baseStyle + "bg-amber-50 text-amber-900 border border-amber-300 rounded font-bold";
-                            cell.innerHTML = `<span class="text-[8px] text-amber-700 font-extrabold">テスト</span><span class="truncate w-full text-center">${testSubjObj ? escapeHtml(testSubjObj.subject) : '-'}</span>`;
+                            if (testSubjObj && testSubjObj.subject) {
+                                cell.className = baseStyle + "bg-amber-50 text-amber-900 border border-amber-300 rounded font-bold";
+                                cell.innerHTML = `<span class="text-[8px] text-amber-700 font-extrabold">テスト</span><span class="truncate w-full text-center">${escapeHtml(testSubjObj.subject)}</span>`;
+                            } else if (!hasAnyTestSubjectOnThisDay) {
+                                // その日の科目を全く入れなかった場合は4限目まで「-」を入れる
+                                cell.className = baseStyle + "bg-amber-50/40 text-amber-800/70";
+                                cell.innerHTML = `<span>-</span>`;
+                            } else {
+                                // 科目が1つでも入っている日の空欄時限は「-」を入れず普通の空白にする
+                                cell.className = baseStyle + "bg-white text-slate-300";
+                                cell.innerHTML = ``;
+                            }
                         } else {
                             cell.className = baseStyle + "bg-slate-50 text-slate-300";
                             cell.innerHTML = `<span>-</span>`;
                         }
                     } else if (changeEvent) {
-                        cell.className = baseStyle + "bg-rose-50 text-rose-900 border border-rose-200 rounded font-bold";
-                        cell.innerHTML = `<span class="text-[8px] text-rose-600 font-extrabold">変更</span><span class="truncate w-full text-center">${escapeHtml(changeEvent.subject)}</span>`;
+                        if (changeEvent.subject === '-') {
+                            // 「時間を消す」で消去された場合は、元からなかったかのように「-」を表示（「変更」表示なし）
+                            cell.className = baseStyle + "bg-white text-slate-300";
+                            cell.innerHTML = `<span>-</span>`;
+                        } else {
+                            cell.className = baseStyle + "bg-rose-50 text-rose-900 border border-rose-200 rounded font-bold";
+                            cell.innerHTML = `<span class="text-[8px] text-rose-600 font-extrabold">変更</span><span class="truncate w-full text-center">${escapeHtml(changeEvent.subject)}</span>`;
+                        }
                     } else if (holidayName) {
                         cell.className = baseStyle + "bg-rose-50/40 text-rose-400";
                         cell.innerHTML = `<span>祝日</span>`;
@@ -652,15 +684,17 @@
 
                 let html = `<span class="${numClass}">${day}</span>`;
                 const events = dayEvents[dateKey] || [];
-                const hasChange = events.some(e => e.type === 'change' && !e.isTest);
+                const hasChange = events.some(e => e.type === 'change' && !e.isTest && e.subject !== '-');
                 const hasBelonging = events.some(e => e.type === 'belonging');
                 const hasAssignment = events.some(e => e.type === 'assignment');
+                const hasEvent = events.some(e => e.type === 'event');
 
                 html += `<div class="flex flex-wrap gap-0.5 mt-0.5">`;
                 if (inTest) html += `<div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>`;
                 if (hasChange) html += `<div class="w-1.5 h-1.5 rounded-full bg-rose-500"></div>`;
                 if (hasBelonging) html += `<div class="w-1.5 h-1.5 rounded-full bg-purple-500"></div>`;
                 if (hasAssignment) html += `<div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>`;
+                if (hasEvent) html += `<div class="w-1.5 h-1.5 rounded-full bg-sky-500"></div>`;
                 html += `</div>`;
 
                 dayCell.innerHTML = html;
@@ -738,7 +772,7 @@
             closeMonthPickerModal();
         }
 
-        // Test Period Modal Logic (Weekday Only)
+        // Test Period Modal Logic (Weekdays & Non-Holidays Only)
         function openTestPeriodModal() {
             const todayStr = formatDateKey(new Date());
             const startInput = document.getElementById('testStartDate');
@@ -799,7 +833,6 @@
             }
             errEl.classList.add('hidden');
 
-            // Save range if not editing specific existing range
             if (!specificRange) {
                 testRanges.push({ id: Date.now(), startDate: startStr, endDate: endStr });
                 saveTestRangesData();
@@ -809,7 +842,7 @@
             const endDate = new Date(endStr + 'T00:00:00');
             const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
 
-            document.getElementById('testRangeSummary').innerText = `${startStr.replace(/-/g, '/')} 〜 ${endStr.replace(/-/g, '/')} (土日除外)`;
+            document.getElementById('testRangeSummary').innerText = `${startStr.replace(/-/g, '/')} 〜 ${endStr.replace(/-/g, '/')} (土日祝除外)`;
 
             const container = document.getElementById('testSubjectsContainer');
             container.innerHTML = '';
@@ -819,9 +852,13 @@
 
             while (current <= endDate) {
                 const dayOfWeek = current.getDay();
-                if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                const dateKey = formatDateKey(current);
+                const holidays = getJapaneseHolidays(current.getFullYear());
+                const isHoliday = !!holidays[dateKey];
+
+                // 土日(0, 6)と祝日をスキップ
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday) {
                     dayCount++;
-                    const dateKey = formatDateKey(current);
                     const m = current.getMonth() + 1;
                     const d = current.getDate();
                     const w = dayNames[dayOfWeek];
@@ -903,7 +940,7 @@
             const matchedRangeIndex = testRanges.findIndex(range => dateKey >= range.startDate && dateKey <= range.endDate);
             const actionsContainer = document.getElementById('testPeriodActionsContainer');
             
-            if (matchedRangeIndex !== -1) {
+            if (matchedRangeIndex !== -1 && isDateInTestRange(dateKey)) {
                 const range = testRanges[matchedRangeIndex];
                 actionsContainer.innerHTML = `
                     <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 space-y-2 mb-3">
@@ -930,23 +967,43 @@
             const eventTypeSelect = document.getElementById('eventTypeSelect');
             const listHeader = document.getElementById('dayEventsListHeader');
             const formHeader = document.getElementById('dayAddFormHeader');
+            const primaryBtn = document.getElementById('primaryAddEventBtn');
+            const clearBtn = document.getElementById('clearPeriodBtn');
 
             if (mode === 'home') {
                 selectWrapper.classList.add('hidden');
                 eventTypeSelect.value = 'change';
                 document.getElementById('changePeriodSelect').value = String(defaultPeriod);
                 listHeader.innerText = '登録されている時間割変更';
-                formHeader.innerText = '時間割変更または削除';
+                formHeader.innerText = `${defaultPeriod}限目の時間割を変更・消去`;
+                primaryBtn.innerText = '時間割を変更する';
+                clearBtn.classList.remove('hidden');
             } else {
                 selectWrapper.classList.remove('hidden');
                 listHeader.innerText = '登録されている予定';
                 formHeader.innerText = '新規追加';
+                primaryBtn.innerText = '追加する';
+                clearBtn.classList.add('hidden');
             }
 
             toggleEventTypeFields();
             renderDayEventsList();
             document.getElementById('dayDetailModal').classList.remove('opacity-0', 'pointer-events-none');
             document.body.classList.add('modal-active');
+        }
+
+        function requestClearPeriod() {
+            const period = document.getElementById('changePeriodSelect').value;
+            openConfirmModal("この時間を消しますか？", `${period}限目の授業を消去して「-」にします。`, () => {
+                if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
+                dayEvents[activeDayKey] = dayEvents[activeDayKey].filter(e => !(e.type === 'change' && !e.isTest && String(e.period) === String(period)));
+                dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period, subject: '-', isTest: false });
+                saveEventsData();
+                renderDayEventsList();
+                renderCalendar();
+                renderWeeklyTimetable();
+                closeDayDetailModal();
+            });
         }
 
         function editSpecificTestRange(rangeIndex) {
@@ -1003,8 +1060,10 @@
                     labelText = `${ev.isTest ? '[テスト科目] ' : '時間割変更: '}${ev.period}限 (${escapeHtml(ev.subject)})`;
                 } else if (ev.type === 'belonging') {
                     labelText = `持ち物: ${escapeHtml(ev.title)}`;
-                } else {
+                } else if (ev.type === 'assignment') {
                     labelText = `課題提出日: ${escapeHtml(ev.title)}`;
+                } else if (ev.type === 'event') {
+                    labelText = `イベント: ${escapeHtml(ev.title)}`;
                 }
                 return `
                     <div class="flex justify-between items-center p-2 bg-slate-50 border rounded-xl text-xs font-bold">
@@ -1021,6 +1080,7 @@
             document.getElementById('fieldTimetableChange').classList.toggle('hidden', type !== 'change');
             document.getElementById('fieldBelonging').classList.toggle('hidden', type !== 'belonging');
             document.getElementById('fieldAssignment').classList.toggle('hidden', type !== 'assignment');
+            document.getElementById('fieldEvent').classList.toggle('hidden', type !== 'event');
         }
 
         function requestAddDayEvent() {
@@ -1029,15 +1089,9 @@
                 if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
                 if (type === 'change') {
                     const period = document.getElementById('changePeriodSelect').value;
-                    const subject = document.getElementById('changeSubjectInput').value.trim();
-                    
-                    // すでにその時限にある変更を一度削除
+                    const subject = document.getElementById('changeSubjectInput').value.trim() || '変更なし';
                     dayEvents[activeDayKey] = dayEvents[activeDayKey].filter(e => !(e.type === 'change' && !e.isTest && String(e.period) === String(period)));
-                    
-                    // 科目が入力されている場合のみ変更データを追加（空白の場合は「その時間を消す」動作になる）
-                    if (subject) {
-                        dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period, subject, isTest: false });
-                    }
+                    dayEvents[activeDayKey].push({ id: Date.now(), type: 'change', period, subject, isTest: false });
                     document.getElementById('changeSubjectInput').value = '';
                 } else if (type === 'belonging') {
                     const title = document.getElementById('belongingInput').value.trim();
@@ -1047,6 +1101,10 @@
                     const title = document.getElementById('assignmentTitleInput').value.trim();
                     if (title) dayEvents[activeDayKey].push({ id: Date.now(), type: 'assignment', title, time: document.getElementById('assignmentTimeInput').value });
                     document.getElementById('assignmentTitleInput').value = '';
+                } else if (type === 'event') {
+                    const title = document.getElementById('eventTitleInput').value.trim();
+                    if (title) dayEvents[activeDayKey].push({ id: Date.now(), type: 'event', title });
+                    document.getElementById('eventTitleInput').value = '';
                 }
                 if (dayEvents[activeDayKey].length === 0) delete dayEvents[activeDayKey];
                 saveEventsData();
@@ -1054,7 +1112,6 @@
                 renderCalendar();
                 renderWeeklyTimetable();
                 renderAssignmentsTab();
-                closeDayDetailModal();
             });
         }
 
