@@ -4,20 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>スクール手帳 - 時間割・スケジュール管理</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- UIスタイリング用のTailwind CSSを読み込み -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
+    <!-- アイコン表示用のLucide Iconsを読み込み -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        /* モーダルのフェード・スライドアニメーション設定 */
         .modal { transition: opacity 0.2s ease, transform 0.2s ease; }
+        /* モーダル表示中は背景のスクロールをロック */
         body.modal-active { overflow: hidden; }
+        /* 横スクロール領域のスクロールバーを非表示にする設定 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col pb-20 select-none">
 
-    <!-- Auth View (Hidden when logged in) -->
+    <!-- ==========================================
+         ログイン画面（未ログイン時に表示）
+         ========================================== -->
     <div id="authView" class="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center space-y-6">
             <div class="bg-indigo-100 text-indigo-600 p-4 rounded-full inline-block">
@@ -28,6 +33,7 @@
                 <p class="text-slate-500 text-xs mt-1">メールアドレスを入力してスタート</p>
             </div>
 
+            <!-- 入力されたメールアドレスを保存してアプリを開始 -->
             <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
                 <input type="email" id="authEmail" required class="w-full px-4 py-3 border border-slate-200 rounded-xl text-center focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="student@example.com">
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition text-sm">
@@ -37,15 +43,17 @@
         </div>
     </div>
 
-    <!-- Main Content Area (Mobile Optimized) -->
+    <!-- ==========================================
+         メインコンテンツ領域
+         ========================================== -->
     <main class="flex-1 p-3 max-w-md mx-auto w-full space-y-3 pb-6">
-        <!-- HEADER -->
+        <!-- 共通ヘッダー：今日の日付表示＆カレンダータブ専用操作ボタン -->
         <header class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center">
             <div>
                 <span class="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">TODAY</span>
                 <h1 class="text-base font-extrabold text-slate-900 leading-tight" id="currentDateStr"></h1>
             </div>
-            <!-- カレンダータブでのみ表示されるテスト期間・月間削除ボタン -->
+            <!-- カレンダータブでのみ表示される「テスト期間」登録と「表示中の月の全削除」ボタン -->
             <div id="testButtonHeaderContainer" class="hidden flex items-center gap-1.5">
                 <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm">
                     <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
@@ -57,7 +65,9 @@
             </div>
         </header>
 
-        <!-- TAB CONTENT: HOME (1-WEEK TIMETABLE GRID) -->
+        <!-- ------------------------------------------
+             タブ1：ホーム（1週間時間割グリッド＆持ち物・課題サマリー）
+             ------------------------------------------ -->
         <section id="tab-home" class="space-y-3">
             <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200">
                 <div class="flex justify-between items-center mb-2">
@@ -66,7 +76,7 @@
                     </h2>
                     <span class="text-[10px] text-slate-400">マスをタップで変更・消去</span>
                 </div>
-                <!-- Horizontal scrolling wrapper for 1-week grid -->
+                <!-- スマホでも見やすい横スクロール可能な7日分×7限のグリッド -->
                 <div class="overflow-x-auto no-scrollbar">
                     <div class="min-w-[650px] grid grid-cols-8 divide-x divide-y divide-slate-100 text-center text-[11px]" id="weeklyGridContainer">
                         <div class="bg-slate-50 p-1.5 font-bold text-slate-400 flex items-center justify-center text-[10px]">時限</div>
@@ -78,6 +88,7 @@
                         <div class="bg-blue-50/50 p-1.5 font-bold text-blue-600" id="h-head-6">土</div>
                         <div class="bg-rose-50/50 p-1.5 font-bold text-rose-600" id="h-head-0">日</div>
 
+                        <!-- 1限〜7限 × 月〜日のセルを動的に生成 -->
                         <script>
                             for(let p=1; p<=7; p++) {
                                 document.write(`
@@ -96,7 +107,7 @@
                 </div>
             </div>
 
-            <!-- Summary Cards -->
+            <!-- 本日・明日の持ち物と、1週間以内の提出課題をまとめるサマリーカード -->
             <div class="grid grid-cols-1 gap-2.5">
                 <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm space-y-3">
                     <div>
@@ -131,8 +142,11 @@
             </div>
         </section>
 
-        <!-- TAB CONTENT: CALENDAR -->
+        <!-- ------------------------------------------
+             タブ2：カレンダー（月間表示・予定確認・テスト期間設定）
+             ------------------------------------------ -->
         <section id="tab-calendar" class="hidden space-y-3">
+            <!-- 前月・次月移動と、年月ピッカーを開くヘッダー -->
             <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center">
                 <button onclick="changeMonth(-1)" class="p-2 rounded-xl border hover:bg-slate-50 text-slate-600">
                     <i data-lucide="chevron-left" class="w-4 h-4"></i>
@@ -145,6 +159,7 @@
                 </button>
             </div>
 
+            <!-- 曜日ヘッダー＆日付マスが並ぶカレンダーグリッド -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50 text-center text-[10px] font-bold py-2 text-slate-500">
                     <span class="text-rose-500">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="text-blue-500">土</span>
@@ -153,7 +168,9 @@
             </div>
         </section>
 
-        <!-- TAB CONTENT: ASSIGNMENTS -->
+        <!-- ------------------------------------------
+             タブ3：課題一覧
+             ------------------------------------------ -->
         <section id="tab-assignments" class="hidden space-y-3">
             <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 space-y-3">
                 <div class="border-b pb-2.5 flex justify-between items-center">
@@ -166,7 +183,9 @@
             </div>
         </section>
 
-        <!-- TAB CONTENT: SETTINGS -->
+        <!-- ------------------------------------------
+             タブ4：設定（アカウント表示・初期化・ログアウト）
+             ------------------------------------------ -->
         <section id="tab-settings" class="hidden space-y-3">
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-4">
                 <div>
@@ -190,7 +209,9 @@
         </section>
     </main>
 
-    <!-- Bottom Navigation (Mobile) -->
+    <!-- ==========================================
+         下部固定ナビゲーションバー
+         ========================================== -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 flex justify-around py-2 shadow-2xl">
         <button onclick="switchTab('home')" id="nav-home-mb" class="flex flex-col items-center space-y-0.5 text-indigo-600">
             <i data-lucide="home" class="w-5 h-5"></i><span class="text-[10px] font-bold">ホーム</span>
@@ -206,7 +227,9 @@
         </button>
     </nav>
 
-    <!-- MODAL: Month & Year Picker -->
+    <!-- ==========================================
+         モーダル1：年月選択ピッカー
+         ========================================== -->
     <div id="monthPickerModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-5 space-y-4">
             <div class="flex justify-between items-center border-b pb-2">
@@ -234,7 +257,9 @@
         </div>
     </div>
 
-    <!-- MODAL: Test Period Setup & Subject Input (Weekdays & Non-Holidays Only) -->
+    <!-- ==========================================
+         モーダル2：テスト期間＆テスト科目登録（土日祝は自動除外）
+         ========================================== -->
     <div id="testPeriodModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-0 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-t-3xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
             <div class="p-3.5 border-b border-slate-200 flex justify-between items-center bg-amber-50 rounded-t-3xl">
@@ -245,7 +270,7 @@
                 <button onclick="closeTestPeriodModal()" class="text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
 
-            <!-- Step 1: Date Range Selection -->
+            <!-- ステップ1：テストの開始日・終了日を指定 -->
             <div id="testStep1" class="p-4 space-y-4 text-xs">
                 <p class="text-slate-600 leading-relaxed">テストの開始日と終了日を選択してください（土日と祝日は自動的にスキップされ、平日のみ対象になります）。</p>
                 <div class="grid grid-cols-2 gap-3">
@@ -269,14 +294,14 @@
                 </div>
             </div>
 
-            <!-- Step 2: Subjects Input for Each Weekday (1st to 4th period) -->
+            <!-- ステップ2：対象平日ごとの1〜4限テスト科目を入力 -->
             <div id="testStep2" class="hidden flex-1 flex flex-col overflow-hidden">
                 <div class="px-4 py-2 bg-slate-50 border-b flex justify-between items-center text-[11px]">
                     <span id="testRangeSummary" class="font-bold text-slate-700"></span>
                     <button onclick="backToTestStep1()" class="text-indigo-600 font-bold underline">日程を変更</button>
                 </div>
                 <div id="testSubjectsContainer" class="p-3.5 overflow-y-auto space-y-4 flex-1 text-xs">
-                    <!-- Dynamic inputs generated here -->
+                    <!-- 対象日ごとの入力欄がここに動的に生成される -->
                 </div>
                 <div class="p-3.5 border-t bg-white space-y-2">
                     <button onclick="saveTestSubjects()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md transition">
@@ -287,7 +312,10 @@
         </div>
     </div>
 
-    <!-- MODAL: Day Detail & Edit -->
+    <!-- ==========================================
+         モーダル3：日別詳細・時間割変更・予定追加
+         （ホームのマスから開く場合と、カレンダーの日付から開く場合で表示内容を切り替え）
+         ========================================== -->
     <div id="dayDetailModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-0 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-t-3xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col">
             <div class="p-3.5 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-3xl">
@@ -299,10 +327,10 @@
             </div>
             
             <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
-                <!-- Test Period Batch Actions Container -->
+                <!-- テスト期間中の日付を開いた際に表示する一括操作エリア -->
                 <div id="testPeriodActionsContainer" class="hidden"></div>
 
-                <!-- Registered Events List (Enlarged for better readability) -->
+                <!-- 登録されている予定の一覧表示エリア（カレンダーから開いた時に表示） -->
                 <div id="dayEventsListSection" class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3">
                     <h4 id="dayEventsListHeader" class="text-xs font-extrabold text-slate-700 tracking-wider mb-2 flex items-center gap-1.5">
                         <i data-lucide="calendar-check" class="w-4 h-4 text-indigo-600"></i>
@@ -311,9 +339,11 @@
                     <div id="dayEventsList" class="space-y-2"></div>
                 </div>
 
+                <!-- 新規追加／時間割変更・消去フォームエリア -->
                 <div id="dayAddFormSection" class="border-t pt-3">
                     <h4 id="dayAddFormHeader" class="font-bold text-slate-700 mb-2 text-xs">新規追加</h4>
                     <div class="space-y-2.5">
+                        <!-- 予定の種類選択（カレンダーから開いた時のみ表示） -->
                         <div id="eventTypeSelectWrapper">
                             <select id="eventTypeSelect" onchange="toggleEventTypeFields()" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold">
                                 <option value="change">時間割変更</option>
@@ -323,6 +353,7 @@
                             </select>
                         </div>
 
+                        <!-- 時間割変更用の入力欄（時限・教科名） -->
                         <div id="fieldTimetableChange" class="grid grid-cols-2 gap-2">
                             <select id="changePeriodSelect" class="w-full px-3 py-2 border rounded-xl text-xs bg-white">
                                 <option value="1">1限</option><option value="2">2限</option><option value="3">3限</option>
@@ -331,19 +362,23 @@
                             <input type="text" id="changeSubjectInput" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="変更後の教科">
                         </div>
 
+                        <!-- 持ち物用の入力欄 -->
                         <div id="fieldBelonging" class="hidden">
                             <input type="text" id="belongingInput" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="持ち物の内容">
                         </div>
 
+                        <!-- 課題提出日用の入力欄 -->
                         <div id="fieldAssignment" class="hidden space-y-2">
                             <input type="text" id="assignmentTitleInput" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="課題名">
                             <input type="time" id="assignmentTimeInput" value="08:40" class="w-full px-3 py-2 border rounded-xl text-xs">
                         </div>
 
+                        <!-- イベント用の入力欄 -->
                         <div id="fieldEvent" class="hidden">
                             <input type="text" id="eventTitleInput" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="その日にあるイベント内容（例: 文化祭、遠足など）">
                         </div>
 
+                        <!-- 登録・消去アクションボタン -->
                         <div class="grid grid-cols-1 gap-2" id="dayActionButtonsContainer">
                             <button onclick="requestAddDayEvent()" id="primaryAddEventBtn" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">
                                 時間割を変更する
@@ -358,7 +393,9 @@
         </div>
     </div>
 
-    <!-- MODAL: Confirm Dialog -->
+    <!-- ==========================================
+         モーダル4：確認ダイアログ（削除・変更・初期化などの最終確認）
+         ========================================== -->
     <div id="confirmModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-5 text-center space-y-3">
             <div class="mx-auto w-10 h-10 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center">
@@ -375,19 +412,24 @@
         </div>
     </div>
 
-    <!-- JavaScript Engine -->
+    <!-- ==========================================
+         JavaScript ロジック部
+         ========================================== -->
     <script>
-        let currentUser = null;
-        let selectedCalendarDate = new Date();
-        let activeDayKey = null;
-        let activeModalMode = 'calendar';
-        let confirmActionCallback = null;
+        // --- アプリ全体の状態管理変数 ---
+        let currentUser = null;                 // ログイン中のメールアドレス
+        let selectedCalendarDate = new Date(); // カレンダーで現在表示している年月
+        let activeDayKey = null;                // モーダルで操作中の日付（"YYYY-MM-DD"形式）
+        let activeModalMode = 'calendar';       // モーダル起動元（'home' または 'calendar'）
+        let confirmActionCallback = null;       // 確認ダイアログで「OK」押下時に実行する関数
 
+        // localStorage 保存用キー一覧
         const STORAGE_KEY_USER = 'timetable_app_user';
         const STORAGE_KEY_MASTER = 'timetable_app_master';
         const STORAGE_KEY_EVENTS = 'timetable_app_events';
         const STORAGE_KEY_TEST_RANGES = 'timetable_app_test_ranges';
 
+        // 曜日（0=日〜6=土）× 時限（1〜7）の基本時間割データ
         let masterTimetable = {
             1: { 1: "国語", 2: "数学", 3: "英語", 4: "理科", 5: "社会", 6: "体育" },
             2: { 1: "数A", 2: "英単", 3: "物理", 4: "化学", 5: "歴史", 6: "保健", 7: "総合" },
@@ -396,9 +438,10 @@
             5: { 1: "英語", 2: "国語", 3: "情報", 4: "数学", 5: "理科", 6: "LHR" },
             6: {}, 0: {}
         };
-        let dayEvents = {};
-        let testRanges = [];
+        let dayEvents = {};   // 日付ごとの予定（時間割変更・持ち物・課題・イベント・テスト科目）
+        let testRanges = [];  // テスト期間の開始日・終了日リスト
 
+        // 指定年の日本の祝日マップを生成
         function getJapaneseHolidays(year) {
             const holidays = {};
             const add = (m, d, name) => holidays[`${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`] = name;
@@ -420,6 +463,7 @@
             return holidays;
         }
 
+        // Dateオブジェクトを "YYYY-MM-DD" 文字列に変換
         function formatDateKey(dateObj) {
             const y = dateObj.getFullYear();
             const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -427,7 +471,7 @@
             return `${y}-${m}-${d}`;
         }
 
-        // 文字の幅おおよその算出（全角=2, 半角=1）
+        // 文字列の表示幅を算出（全角=2、半角=1）
         function getDisplayWidth(str) {
             if (!str) return 0;
             let len = 0;
@@ -438,12 +482,12 @@
             return len;
         }
 
-        // カレンダーの1マスに収まる長さかどうか（半角換算8文字＝全角4文字程度までなら文字表示）
+        // カレンダーの1マス内に文字として収まる長さか判定
         function fitsInCalendarCell(text) {
             return getDisplayWidth(text) <= 8;
         }
 
-        // 過ぎた日の「時間割変更」「持ち物」「課題提出日」「イベント」を削除し、「テスト期間」だけ残す
+        // 過ぎた日（今日より前の日付）の「時間割変更・持ち物・課題・イベント」を削除し、「テスト期間（テスト科目）」だけを残す
         function cleanupPastCalendarEvents() {
             const todayKey = formatDateKey(new Date());
             let modified = false;
@@ -467,6 +511,7 @@
             }
         }
 
+        // ページ読み込み完了時の初期化処理
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             loadStoredData();
@@ -475,6 +520,7 @@
             renderHeaderDate();
         });
 
+        // localStorage から各種データを復元
         function loadStoredData() {
             const storedMaster = localStorage.getItem(STORAGE_KEY_MASTER);
             if (storedMaster) try { masterTimetable = JSON.parse(storedMaster); } catch(e){}
@@ -484,10 +530,12 @@
             if (storedRanges) try { testRanges = JSON.parse(storedRanges); } catch(e){}
         }
 
+        // 各種データを localStorage に保存
         function saveMasterData() { localStorage.setItem(STORAGE_KEY_MASTER, JSON.stringify(masterTimetable)); }
         function saveEventsData() { localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(dayEvents)); }
         function saveTestRangesData() { localStorage.setItem(STORAGE_KEY_TEST_RANGES, JSON.stringify(testRanges)); }
 
+        // ログイン状態を確認し、表示画面と各タブを描画
         function checkAuthStatus() {
             const savedEmail = localStorage.getItem(STORAGE_KEY_USER);
             if (savedEmail) {
@@ -502,6 +550,7 @@
             }
         }
 
+        // ログインフォーム送信時の処理
         function handleAuth(e) {
             e.preventDefault();
             const email = document.getElementById('authEmail').value.trim();
@@ -511,6 +560,7 @@
             }
         }
 
+        // ログアウト確認＆実行
         function requestLogout() {
             openConfirmModal("ログアウトしますか？", "データへのアクセスが停止します。", () => {
                 localStorage.removeItem(STORAGE_KEY_USER);
@@ -519,12 +569,14 @@
             });
         }
 
+        // ヘッダーに現在の日付を表示
         function renderHeaderDate() {
             const now = new Date();
             const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
             document.getElementById('currentDateStr').innerText = now.toLocaleDateString('ja-JP', options);
         }
 
+        // 下部ナビゲーションのタブ切り替え処理
         function switchTab(tabName) {
             cleanupPastCalendarEvents();
             ['home', 'calendar', 'assignments', 'settings'].forEach(tab => {
@@ -534,6 +586,7 @@
             });
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
+            // テスト期間・月間削除ボタンはカレンダータブでのみ表示
             const testBtnContainer = document.getElementById('testButtonHeaderContainer');
             if (tabName === 'calendar') {
                 testBtnContainer.classList.remove('hidden');
@@ -546,6 +599,7 @@
             if (tabName === 'assignments') renderAssignmentsTab();
         }
 
+        // 指定日がテスト期間（土日祝を除く平日）に該当するか判定
         function isDateInTestRange(dateKey) {
             const d = new Date(dateKey + 'T00:00:00');
             const dayOfWeek = d.getDay();
@@ -558,6 +612,7 @@
             });
         }
 
+        // ホームの「今週の時間割 (月〜日)」を描画
         function renderWeeklyTimetable() {
             const today = new Date();
             const currentDayOfWeek = today.getDay();
@@ -577,6 +632,7 @@
                 const isTodayCol = dateKey === formatDateKey(today);
                 const inTest = isDateInTestRange(dateKey);
 
+                // 曜日・日付ヘッダーの表示更新
                 const headEl = document.getElementById(`h-head-${dayNum}`);
                 if (headEl) {
                     headEl.innerHTML = `${dayNames[dayNum]}<br><span class="text-[9px] text-slate-400">${dayDate.getMonth()+1}/${dayDate.getDate()}</span>`;
@@ -591,6 +647,7 @@
                 const dayTestSubjects = eventsForDay.filter(e => e.type === 'change' && e.isTest && parseInt(e.period) <= 4 && e.subject && e.subject.trim() !== '');
                 const hasAnyTestSubjectOnThisDay = dayTestSubjects.length > 0;
 
+                // 1限〜7限の各セルを描画
                 for (let p = 1; p <= 7; p++) {
                     const cell = document.getElementById(`cell-${dayNum}-${p}`);
                     if (!cell) continue;
@@ -605,6 +662,7 @@
                     }
 
                     if (inTest) {
+                        // テスト期間中の表示（1〜4限はテスト科目、未入力は薄い「-」、5限以降は「-」）
                         if (p <= 4) {
                             if (testSubjObj && testSubjObj.subject) {
                                 cell.className = baseStyle + "bg-amber-50 text-amber-900 border border-amber-300 rounded font-bold";
@@ -621,6 +679,7 @@
                             cell.innerHTML = `<span>-</span>`;
                         }
                     } else if (calendarChangeEvent) {
+                        // カレンダーで時間割変更を登録した場合のみ、目立つ赤系バッジで表示
                         cell.className = baseStyle + "bg-rose-50 text-rose-900 border border-rose-200 rounded font-bold";
                         cell.innerHTML = `<span class="text-[8px] text-rose-600 font-extrabold">変更</span><span class="truncate w-full text-center">${escapeHtml(calendarChangeEvent.subject)}</span>`;
                     } else if (holidayName) {
@@ -643,6 +702,7 @@
             renderTodaySummary();
         }
 
+        // ホーム下部の「本日の持ち物・明日の持ち物・1週間以内の課題」を描画
         function renderTodaySummary() {
             const today = new Date();
             const todayKey = formatDateKey(today);
@@ -692,7 +752,7 @@
             }
         }
 
-        // カレンダーの1マスに収まるなら文字で書き、長くなったらカラフルなドットにする
+        // カレンダーグリッドを描画（マスに収まる短い文字は文字表示、長いものはカラフルなドット表示）
         function renderCalendar() {
             cleanupPastCalendarEvents();
 
@@ -706,10 +766,12 @@
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
+            // 月初までの空白マスを追加
             for (let i = 0; i < firstDay; i++) {
                 grid.appendChild(document.createElement('div'));
             }
 
+            // 1日から末日まで各日セルを生成
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateObj = new Date(year, month, day);
                 const dateKey = formatDateKey(dateObj);
@@ -737,7 +799,7 @@
 
                 events.forEach(ev => {
                     if (ev.type === 'change' && ev.isTest) {
-                        // テスト科目はテスト枠に含まれるため重複表示しない
+                        // テスト科目はテストバッジに集約するため個別表示しない
                     } else if (ev.type === 'change' && !ev.isTest) {
                         const label = ev.subject === '-' ? `${ev.period}限休` : `${ev.period}限${ev.subject}`;
                         if (fitsInCalendarCell(label)) {
@@ -778,6 +840,7 @@
             }
         }
 
+        // 「課題」タブの登録済み課題一覧を描画
         function renderAssignmentsTab() {
             const listEl = document.getElementById('allAssignmentsList');
             let allAssignments = [];
@@ -811,11 +874,13 @@
             lucide.createIcons();
         }
 
+        // 前月・次月へカレンダーを切り替える
         function changeMonth(offset) {
             selectedCalendarDate.setMonth(selectedCalendarDate.getMonth() + offset);
             renderCalendar();
         }
 
+        // 年月選択モーダルを開く
         function openMonthPickerModal() {
             const yearSelect = document.getElementById('pickerYearSelect');
             const monthSelect = document.getElementById('pickerMonthSelect');
@@ -835,10 +900,12 @@
             document.getElementById('monthPickerModal').classList.remove('opacity-0', 'pointer-events-none');
         }
 
+        // 年月選択モーダルを閉じる
         function closeMonthPickerModal() {
             document.getElementById('monthPickerModal').classList.add('opacity-0', 'pointer-events-none');
         }
 
+        // 選択した年月をカレンダーに反映
         function applySelectedMonthYear() {
             const year = parseInt(document.getElementById('pickerYearSelect').value);
             const month = parseInt(document.getElementById('pickerMonthSelect').value);
@@ -848,7 +915,7 @@
             closeMonthPickerModal();
         }
 
-        // 表示中の月の「時間割変更」「持ち物」「課題提出日」「イベント」「テスト期間」をすべて消す
+        // カレンダー右上のゴミ箱ボタン：表示中の月の「時間割変更・持ち物・課題・イベント・テスト期間」をすべて削除
         function confirmClearCurrentMonth() {
             const year = selectedCalendarDate.getFullYear();
             const month = selectedCalendarDate.getMonth();
@@ -861,12 +928,14 @@
                 `${year}年${month + 1}月の予定を削除`,
                 `${year}年${month + 1}月の「時間割変更」「持ち物」「課題提出日」「イベント」「テスト期間」をすべて削除しますか？`,
                 () => {
+                    // 対象月の日別イベントを削除
                     Object.keys(dayEvents).forEach(dateKey => {
                         if (dateKey.startsWith(monthPrefix)) {
                             delete dayEvents[dateKey];
                         }
                     });
 
+                    // 対象月と重なるテスト期間を削除（他月にまたがる部分は維持）
                     const updatedRanges = [];
                     testRanges.forEach(range => {
                         if (range.endDate < monthFirstKey || range.startDate > monthLastKey) {
@@ -902,7 +971,7 @@
             );
         }
 
-        // Test Period Modal Logic (Weekdays & Non-Holidays Only)
+        // --- テスト期間設定モーダル関連 ---
         function openTestPeriodModal() {
             const todayStr = formatDateKey(new Date());
             const startInput = document.getElementById('testStartDate');
@@ -929,6 +998,7 @@
             document.getElementById('testStep2').classList.add('hidden');
         }
 
+        // テスト日程を確定し、土日祝を除いた平日分の1〜4限科目入力フォームを生成
         function proceedToTestSubjects(specificRange = null) {
             let startStr, endStr;
             if (specificRange) {
@@ -971,6 +1041,7 @@
                 const holidays = getJapaneseHolidays(current.getFullYear());
                 const isHoliday = !!holidays[dateKey];
 
+                // 土日・祝日をスキップ
                 if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday) {
                     dayCount++;
                     const m = current.getMonth() + 1;
@@ -1008,6 +1079,7 @@
             document.getElementById('testStep2').classList.remove('hidden');
         }
 
+        // 入力されたテスト科目を保存
         function saveTestSubjects() {
             const inputs = document.querySelectorAll('.test-subject-input');
             inputs.forEach(input => {
@@ -1040,6 +1112,7 @@
             closeTestPeriodModal();
         }
 
+        // --- 日別詳細・時間割変更モーダル関連 ---
         function openDayDetailModal(dateKey, mode = 'calendar', defaultPeriod = 1) {
             activeDayKey = dateKey;
             activeModalMode = mode;
@@ -1051,6 +1124,7 @@
             const holidayName = holidays[dateKey];
             document.getElementById('dayDetailModalSubtitle').innerText = holidayName ? `祝日: ${holidayName}` : '';
 
+            // テスト期間中であれば、科目変更や期間削除のボタンを表示
             const matchedRangeIndex = testRanges.findIndex(range => dateKey >= range.startDate && dateKey <= range.endDate);
             const actionsContainer = document.getElementById('testPeriodActionsContainer');
             
@@ -1086,6 +1160,7 @@
             const clearBtn = document.getElementById('clearPeriodBtn');
 
             if (mode === 'home') {
+                // ホーム時間割から開いた場合：予定一覧は隠し、基本時間割の変更・消去に特化
                 eventsListSection.classList.add('hidden');
                 addFormSection.classList.remove('border-t', 'pt-3');
                 selectWrapper.classList.add('hidden');
@@ -1095,6 +1170,7 @@
                 primaryBtn.innerText = '時間割を変更する';
                 clearBtn.classList.remove('hidden');
             } else {
+                // カレンダーから開いた場合：予定一覧と各種予定の追加フォームを表示
                 eventsListSection.classList.remove('hidden');
                 addFormSection.classList.add('border-t', 'pt-3');
                 selectWrapper.classList.remove('hidden');
@@ -1109,6 +1185,7 @@
             document.body.classList.add('modal-active');
         }
 
+        // ホームから選択した時限の基本時間割を消去
         function requestClearPeriod() {
             const period = parseInt(document.getElementById('changePeriodSelect').value);
             openConfirmModal("この時間を消しますか？", `${period}限目の授業を消去します。`, () => {
@@ -1123,6 +1200,7 @@
             });
         }
 
+        // 該当日のテスト期間を科目編集画面で開く
         function editSpecificTestRange(rangeIndex) {
             const range = testRanges[rangeIndex];
             closeDayDetailModal();
@@ -1130,6 +1208,7 @@
             proceedToTestSubjects(range);
         }
 
+        // 該当日のテスト期間とテスト科目を削除
         function deleteSpecificTestRange(rangeIndex) {
             openConfirmModal("テスト期間の削除", "このテスト期間（日程および登録されたテスト科目）をすべて削除しますか？", () => {
                 const range = testRanges[rangeIndex];
@@ -1154,11 +1233,13 @@
             });
         }
 
+        // 日別詳細モーダルを閉じる
         function closeDayDetailModal() {
             document.getElementById('dayDetailModal').classList.add('opacity-0', 'pointer-events-none');
             document.body.classList.remove('modal-active');
         }
 
+        // モーダル内の「登録されている予定」一覧を描画
         function renderDayEventsList() {
             const listEl = document.getElementById('dayEventsList');
             const allEvents = dayEvents[activeDayKey] || [];
@@ -1203,6 +1284,7 @@
             lucide.createIcons();
         }
 
+        // 選択した予定種別に応じて入力フォームの表示を切り替え
         function toggleEventTypeFields() {
             const type = document.getElementById('eventTypeSelect').value;
             document.getElementById('fieldTimetableChange').classList.toggle('hidden', type !== 'change');
@@ -1211,8 +1293,10 @@
             document.getElementById('fieldEvent').classList.toggle('hidden', type !== 'event');
         }
 
+        // 時間割変更または各種予定を追加・更新
         function requestAddDayEvent() {
             if (activeModalMode === 'home') {
+                // ホームからの変更は基本時間割（masterTimetable）のみを更新
                 openConfirmModal("時間割を変更しますか？", "今週の時間割の科目を更新します。", () => {
                     const period = parseInt(document.getElementById('changePeriodSelect').value);
                     const subject = document.getElementById('changeSubjectInput').value.trim();
@@ -1234,6 +1318,7 @@
                 return;
             }
 
+            // カレンダーからの追加処理
             openConfirmModal("追加しますか？", "選択した項目を登録します。", () => {
                 const type = document.getElementById('eventTypeSelect').value;
                 if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
@@ -1265,6 +1350,7 @@
             });
         }
 
+        // 日別詳細モーダルから特定の予定を削除
         function requestDeleteEvent(index) {
             openConfirmModal("削除しますか？", "元に戻すことはできません。", () => {
                 if (dayEvents[activeDayKey]) {
@@ -1279,6 +1365,7 @@
             });
         }
 
+        // 「課題」タブから特定の課題を削除
         function requestDeleteSpecificAssignment(dateKey, index) {
             openConfirmModal("課題を削除しますか？", "元に戻すことはできません。", () => {
                 if (dayEvents[dateKey]) {
@@ -1292,6 +1379,7 @@
             });
         }
 
+        // 全データの初期化
         function confirmResetAllData() {
             openConfirmModal("初期化しますか？", "全データが完全に削除されます。", () => {
                 localStorage.clear();
@@ -1302,6 +1390,7 @@
             });
         }
 
+        // --- 汎用確認ダイアログ制御 ---
         function openConfirmModal(title, msg, onExecute) {
             document.getElementById('confirmModalTitle').innerText = title;
             document.getElementById('confirmModalMsg').innerText = msg;
@@ -1317,6 +1406,7 @@
             document.getElementById('confirmModal').classList.add('opacity-0', 'pointer-events-none');
         }
 
+        // XSS対策用のHTMLエスケープ処理
         function escapeHtml(str) {
             return str ? str.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">") : '';
         }
