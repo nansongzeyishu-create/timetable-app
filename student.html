@@ -2,18 +2,19 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <!-- スマホ画面の幅に合わせて表示し、ピンチズームによる崩れを防ぐ設定 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>スクール手帳 - 時間割・スケジュール管理</title>
-    <!-- UIスタイリング用のTailwind CSSを読み込み -->
+    <!-- デザイン（色・余白・角丸・影など）を簡単に指定するためのTailwind CSSを読み込む -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- アイコン表示用のLucide Iconsを読み込み -->
+    <!-- 虫眼鏡やゴミ箱などのアイコンを表示するためのLucide Iconsを読み込む -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        /* モーダルのフェード・スライドアニメーション設定 */
+        /* モーダル（ポップアップ画面）が開閉するときのふわっとした動きを設定 */
         .modal { transition: opacity 0.2s ease, transform 0.2s ease; }
-        /* モーダル表示中は背景のスクロールをロック */
+        /* モーダルが開いている間は、後ろの画面がスクロールしないように固定 */
         body.modal-active { overflow: hidden; }
-        /* 横スクロール領域のスクロールバーを非表示にする設定 */
+        /* 横スクロールできる時間割表のスクロールバーを隠してスッキリ見せる設定 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -21,7 +22,7 @@
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col pb-20 select-none">
 
     <!-- ==========================================
-         ログイン画面（未ログイン時に表示）
+         ログイン画面（まだログインしていない時に画面全体を覆って表示）
          ========================================== -->
     <div id="authView" class="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center space-y-6">
@@ -33,7 +34,7 @@
                 <p class="text-slate-500 text-xs mt-1">メールアドレスを入力してスタート</p>
             </div>
 
-            <!-- 入力されたメールアドレスを保存してアプリを開始 -->
+            <!-- フォーム送信時に handleAuth を呼び出し、メールアドレスを保存してアプリを開始 -->
             <form id="authForm" onsubmit="handleAuth(event)" class="space-y-4">
                 <input type="email" id="authEmail" required class="w-full px-4 py-3 border border-slate-200 rounded-xl text-center focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm" placeholder="student@example.com">
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3 rounded-xl shadow-lg shadow-indigo-200 transition text-sm">
@@ -44,21 +45,24 @@
     </div>
 
     <!-- ==========================================
-         メインコンテンツ領域
+         メインコンテンツ領域（各タブの中身を表示する枠）
          ========================================== -->
     <main class="flex-1 p-3 max-w-md mx-auto w-full space-y-3 pb-6">
-        <!-- 共通ヘッダー：今日の日付表示＆カレンダータブ専用操作ボタン -->
+        <!-- 共通ヘッダー：今日の日付と、カレンダータブ専用の操作ボタンを表示 -->
         <header class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center">
             <div>
                 <span class="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">TODAY</span>
+                <!-- 現在の日付がJavaScriptからここに書き込まれる -->
                 <h1 class="text-base font-extrabold text-slate-900 leading-tight" id="currentDateStr"></h1>
             </div>
-            <!-- カレンダータブでのみ表示される「テスト期間」登録と「表示中の月の全削除」ボタン -->
+            <!-- カレンダータブを開いている時だけ見えるボタン群 -->
             <div id="testButtonHeaderContainer" class="hidden flex items-center gap-1.5">
+                <!-- テスト期間・テスト科目を設定するモーダルを開くボタン -->
                 <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm">
                     <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
                     <span>テスト期間</span>
                 </button>
+                <!-- 表示中の月の予定やテスト期間をまとめて削除するボタン -->
                 <button onclick="confirmClearCurrentMonth()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="表示中の月の予定をすべて削除">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
@@ -66,7 +70,7 @@
         </header>
 
         <!-- ------------------------------------------
-             タブ1：ホーム（1週間時間割グリッド＆持ち物・課題サマリー）
+             タブ1：ホーム画面（1週間の時間割表＋持ち物・課題まとめ）
              ------------------------------------------ -->
         <section id="tab-home" class="space-y-3">
             <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200">
@@ -76,7 +80,7 @@
                     </h2>
                     <span class="text-[10px] text-slate-400">マスをタップで変更・消去</span>
                 </div>
-                <!-- スマホでも見やすい横スクロール可能な7日分×7限のグリッド -->
+                <!-- 横スクロールできる8列（時限＋月〜日）の時間割グリッド -->
                 <div class="overflow-x-auto no-scrollbar">
                     <div class="min-w-[650px] grid grid-cols-8 divide-x divide-y divide-slate-100 text-center text-[11px]" id="weeklyGridContainer">
                         <div class="bg-slate-50 p-1.5 font-bold text-slate-400 flex items-center justify-center text-[10px]">時限</div>
@@ -88,7 +92,7 @@
                         <div class="bg-blue-50/50 p-1.5 font-bold text-blue-600" id="h-head-6">土</div>
                         <div class="bg-rose-50/50 p-1.5 font-bold text-rose-600" id="h-head-0">日</div>
 
-                        <!-- 1限〜7限 × 月〜日のセルを動的に生成 -->
+                        <!-- 1限〜7限の行と、各曜日のマス（cell-曜日-時限）をループで自動生成 -->
                         <script>
                             for(let p=1; p<=7; p++) {
                                 document.write(`
@@ -107,7 +111,7 @@
                 </div>
             </div>
 
-            <!-- 本日・明日の持ち物と、1週間以内の提出課題をまとめるサマリーカード -->
+            <!-- 本日の持ち物・明日の持ち物・1週間以内に提出する課題の一覧カード -->
             <div class="grid grid-cols-1 gap-2.5">
                 <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm space-y-3">
                     <div>
@@ -143,10 +147,10 @@
         </section>
 
         <!-- ------------------------------------------
-             タブ2：カレンダー（月間表示・予定確認・テスト期間設定）
+             タブ2：カレンダー画面（月ごとの予定・テスト期間・時間割変更の管理）
              ------------------------------------------ -->
         <section id="tab-calendar" class="hidden space-y-3">
-            <!-- 前月・次月移動と、年月ピッカーを開くヘッダー -->
+            <!-- 前月・次月へ移動する矢印と、年月選択モーダルを開くボタン -->
             <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center">
                 <button onclick="changeMonth(-1)" class="p-2 rounded-xl border hover:bg-slate-50 text-slate-600">
                     <i data-lucide="chevron-left" class="w-4 h-4"></i>
@@ -159,17 +163,18 @@
                 </button>
             </div>
 
-            <!-- 曜日ヘッダー＆日付マスが並ぶカレンダーグリッド -->
+            <!-- 曜日ヘッダーと、日付ごとのマスが並ぶカレンダー本体 -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="grid grid-cols-7 border-b border-slate-100 bg-slate-50 text-center text-[10px] font-bold py-2 text-slate-500">
                     <span class="text-rose-500">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="text-blue-500">土</span>
                 </div>
+                <!-- 各日付のマスは renderCalendar() で動的に作られる -->
                 <div id="calendarDaysGrid" class="grid grid-cols-7 divide-x divide-y divide-slate-100 min-h-[300px]"></div>
             </div>
         </section>
 
         <!-- ------------------------------------------
-             タブ3：課題一覧
+             タブ3：課題一覧画面（登録された課題を日付順に確認・削除）
              ------------------------------------------ -->
         <section id="tab-assignments" class="hidden space-y-3">
             <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 space-y-3">
@@ -184,7 +189,7 @@
         </section>
 
         <!-- ------------------------------------------
-             タブ4：設定（アカウント表示・初期化・ログアウト）
+             タブ4：設定画面（ログイン情報・全データ初期化・ログアウト）
              ------------------------------------------ -->
         <section id="tab-settings" class="hidden space-y-3">
             <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 space-y-4">
@@ -210,7 +215,7 @@
     </main>
 
     <!-- ==========================================
-         下部固定ナビゲーションバー
+         画面下部に固定されたタブ切り替えナビゲーション
          ========================================== -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 flex justify-around py-2 shadow-2xl">
         <button onclick="switchTab('home')" id="nav-home-mb" class="flex flex-col items-center space-y-0.5 text-indigo-600">
@@ -228,7 +233,7 @@
     </nav>
 
     <!-- ==========================================
-         モーダル1：年月選択ピッカー
+         モーダル1：年と月を選んでカレンダーをジャンプする画面
          ========================================== -->
     <div id="monthPickerModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-5 space-y-4">
@@ -258,7 +263,7 @@
     </div>
 
     <!-- ==========================================
-         モーダル2：テスト期間＆テスト科目登録（土日祝は自動除外）
+         モーダル2：テスト期間の日程指定と、平日1〜4限のテスト科目入力画面
          ========================================== -->
     <div id="testPeriodModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-0 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-t-3xl shadow-2xl max-w-md w-full max-h-[90vh] flex flex-col">
@@ -270,7 +275,7 @@
                 <button onclick="closeTestPeriodModal()" class="text-slate-400 p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
 
-            <!-- ステップ1：テストの開始日・終了日を指定 -->
+            <!-- ステップ1：テストの開始日と終了日を選ぶ -->
             <div id="testStep1" class="p-4 space-y-4 text-xs">
                 <p class="text-slate-600 leading-relaxed">テストの開始日と終了日を選択してください（土日と祝日は自動的にスキップされ、平日のみ対象になります）。</p>
                 <div class="grid grid-cols-2 gap-3">
@@ -294,14 +299,14 @@
                 </div>
             </div>
 
-            <!-- ステップ2：対象平日ごとの1〜4限テスト科目を入力 -->
+            <!-- ステップ2：土日祝を除いた各平日の1〜4限にテスト科目を入力する -->
             <div id="testStep2" class="hidden flex-1 flex flex-col overflow-hidden">
                 <div class="px-4 py-2 bg-slate-50 border-b flex justify-between items-center text-[11px]">
                     <span id="testRangeSummary" class="font-bold text-slate-700"></span>
                     <button onclick="backToTestStep1()" class="text-indigo-600 font-bold underline">日程を変更</button>
                 </div>
                 <div id="testSubjectsContainer" class="p-3.5 overflow-y-auto space-y-4 flex-1 text-xs">
-                    <!-- 対象日ごとの入力欄がここに動的に生成される -->
+                    <!-- 対象日ごとの入力カードがJavaScriptからここに挿入される -->
                 </div>
                 <div class="p-3.5 border-t bg-white space-y-2">
                     <button onclick="saveTestSubjects()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md transition">
@@ -313,8 +318,7 @@
     </div>
 
     <!-- ==========================================
-         モーダル3：日別詳細・時間割変更・予定追加
-         （ホームのマスから開く場合と、カレンダーの日付から開く場合で表示内容を切り替え）
+         モーダル3：日別の予定確認・追加・時間割の変更/消去画面
          ========================================== -->
     <div id="dayDetailModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-end justify-center p-0 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-t-3xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col">
@@ -327,10 +331,10 @@
             </div>
             
             <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
-                <!-- テスト期間中の日付を開いた際に表示する一括操作エリア -->
+                <!-- テスト期間中の日を開いた時に表示される「テスト科目を変更」「期間をすべて削除」ボタン -->
                 <div id="testPeriodActionsContainer" class="hidden"></div>
 
-                <!-- 登録されている予定の一覧表示エリア（カレンダーから開いた時に表示） -->
+                <!-- その日に登録されている予定を大きめに見やすく表示するエリア -->
                 <div id="dayEventsListSection" class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3">
                     <h4 id="dayEventsListHeader" class="text-xs font-extrabold text-slate-700 tracking-wider mb-2 flex items-center gap-1.5">
                         <i data-lucide="calendar-check" class="w-4 h-4 text-indigo-600"></i>
@@ -339,11 +343,11 @@
                     <div id="dayEventsList" class="space-y-2"></div>
                 </div>
 
-                <!-- 新規追加／時間割変更・消去フォームエリア -->
+                <!-- 予定の新規追加、またはホームから開いた時の時間割変更・消去フォーム -->
                 <div id="dayAddFormSection" class="border-t pt-3">
                     <h4 id="dayAddFormHeader" class="font-bold text-slate-700 mb-2 text-xs">新規追加</h4>
                     <div class="space-y-2.5">
-                        <!-- 予定の種類選択（カレンダーから開いた時のみ表示） -->
+                        <!-- 追加する予定の種類を選ぶプルダウン -->
                         <div id="eventTypeSelectWrapper">
                             <select id="eventTypeSelect" onchange="toggleEventTypeFields()" class="w-full px-3 py-2 border rounded-xl text-xs bg-white font-bold">
                                 <option value="change">時間割変更</option>
@@ -353,7 +357,7 @@
                             </select>
                         </div>
 
-                        <!-- 時間割変更用の入力欄（時限・教科名） -->
+                        <!-- 時間割変更を選んだ時に表示される「時限」と「教科名」の入力欄 -->
                         <div id="fieldTimetableChange" class="grid grid-cols-2 gap-2">
                             <select id="changePeriodSelect" class="w-full px-3 py-2 border rounded-xl text-xs bg-white">
                                 <option value="1">1限</option><option value="2">2限</option><option value="3">3限</option>
@@ -362,23 +366,23 @@
                             <input type="text" id="changeSubjectInput" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="変更後の教科">
                         </div>
 
-                        <!-- 持ち物用の入力欄 -->
+                        <!-- 持ち物を選んだ時に表示される入力欄 -->
                         <div id="fieldBelonging" class="hidden">
                             <input type="text" id="belongingInput" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="持ち物の内容">
                         </div>
 
-                        <!-- 課題提出日用の入力欄 -->
+                        <!-- 課題提出日を選んだ時に表示される「課題名」と「提出時刻」の入力欄 -->
                         <div id="fieldAssignment" class="hidden space-y-2">
                             <input type="text" id="assignmentTitleInput" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="課題名">
                             <input type="time" id="assignmentTimeInput" value="08:40" class="w-full px-3 py-2 border rounded-xl text-xs">
                         </div>
 
-                        <!-- イベント用の入力欄 -->
+                        <!-- イベントを選んだ時に表示される入力欄 -->
                         <div id="fieldEvent" class="hidden">
                             <input type="text" id="eventTitleInput" class="w-full px-3 py-2 border rounded-xl text-xs" placeholder="その日にあるイベント内容（例: 文化祭、遠足など）">
                         </div>
 
-                        <!-- 登録・消去アクションボタン -->
+                        <!-- 保存ボタンと、ホーム時間割から開いた時用の「この時間を消す」ボタン -->
                         <div class="grid grid-cols-1 gap-2" id="dayActionButtonsContainer">
                             <button onclick="requestAddDayEvent()" id="primaryAddEventBtn" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-md">
                                 時間割を変更する
@@ -394,7 +398,7 @@
     </div>
 
     <!-- ==========================================
-         モーダル4：確認ダイアログ（削除・変更・初期化などの最終確認）
+         モーダル4：削除や変更の前に「本当に実行しますか？」と聞く確認画面
          ========================================== -->
     <div id="confirmModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl max-w-xs w-full p-5 text-center space-y-3">
@@ -413,23 +417,23 @@
     </div>
 
     <!-- ==========================================
-         JavaScript ロジック部
+         JavaScript プログラム本体
          ========================================== -->
     <script>
-        // --- アプリ全体の状態管理変数 ---
-        let currentUser = null;                 // ログイン中のメールアドレス
-        let selectedCalendarDate = new Date(); // カレンダーで現在表示している年月
-        let activeDayKey = null;                // モーダルで操作中の日付（"YYYY-MM-DD"形式）
-        let activeModalMode = 'calendar';       // モーダル起動元（'home' または 'calendar'）
-        let confirmActionCallback = null;       // 確認ダイアログで「OK」押下時に実行する関数
+        // --- アプリの状態を保持する変数たち ---
+        let currentUser = null;                 // ログイン中のメールアドレスを記憶
+        let selectedCalendarDate = new Date(); // カレンダーで表示している年・月を記憶
+        let activeDayKey = null;                // モーダルで開いている日付（"2026-11-19" のような形式）を記憶
+        let activeModalMode = 'calendar';       // どこからモーダルを開いたか（'home' か 'calendar' か）を記憶
+        let confirmActionCallback = null;       // 確認画面で「OK」が押された時に動かす処理を記憶
 
-        // localStorage 保存用キー一覧
+        // ブラウザの保存領域（localStorage）にデータを保存する時の名前（キー）
         const STORAGE_KEY_USER = 'timetable_app_user';
         const STORAGE_KEY_MASTER = 'timetable_app_master';
         const STORAGE_KEY_EVENTS = 'timetable_app_events';
         const STORAGE_KEY_TEST_RANGES = 'timetable_app_test_ranges';
 
-        // 曜日（0=日〜6=土）× 時限（1〜7）の基本時間割データ
+        // 曜日（0=日, 1=月 ... 6=土）と時限（1〜7）ごとの初期時間割データ
         let masterTimetable = {
             1: { 1: "国語", 2: "数学", 3: "英語", 4: "理科", 5: "社会", 6: "体育" },
             2: { 1: "数A", 2: "英単", 3: "物理", 4: "化学", 5: "歴史", 6: "保健", 7: "総合" },
@@ -438,17 +442,19 @@
             5: { 1: "英語", 2: "国語", 3: "情報", 4: "数学", 5: "理科", 6: "LHR" },
             6: {}, 0: {}
         };
-        let dayEvents = {};   // 日付ごとの予定（時間割変更・持ち物・課題・イベント・テスト科目）
-        let testRanges = [];  // テスト期間の開始日・終了日リスト
+        let dayEvents = {};   // 各日付ごとの予定（時間割変更・持ち物・課題・イベント・テスト科目）を入れる箱
+        let testRanges = [];  // テスト期間の「開始日」と「終了日」のまとまりを入れる配列
 
-        // 指定年の日本の祝日マップを生成
+        // 指定された年の日本の祝日一覧を作って返す関数
         function getJapaneseHolidays(year) {
             const holidays = {};
+            // 固定日や振替・指定日の祝日を登録するヘルパー関数
             const add = (m, d, name) => holidays[`${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`] = name;
             add(1, 1, "元日"); add(2, 11, "建国記念の日"); add(2, 23, "天皇誕生日");
             add(4, 29, "昭和の日"); add(5, 3, "憲法記念日"); add(5, 4, "みどりの日"); add(5, 5, "こどもの日");
             add(8, 11, "山の日"); add(11, 3, "文化の日"); add(11, 23, "勤労感謝の日");
             
+            // 第N月曜日（ハッピーマンデー）の日付を計算する関数
             const getNthMonday = (month, nth) => {
                 let count = 0;
                 for (let d = 1; d <= 31; d++) {
@@ -463,7 +469,7 @@
             return holidays;
         }
 
-        // Dateオブジェクトを "YYYY-MM-DD" 文字列に変換
+        // 日付オブジェクトを "YYYY-MM-DD" の文字列に変換する関数
         function formatDateKey(dateObj) {
             const y = dateObj.getFullYear();
             const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -471,56 +477,55 @@
             return `${y}-${m}-${d}`;
         }
 
-        // 文字列の表示幅を算出（全角=2、半角=1）
+        // 文字列の表示幅を計算する関数（全角文字は2、半角文字は1としてカウント）
         function getDisplayWidth(str) {
-            if (!str) return 0;
-            let len = 0;
-            for (let i = 0; i < str.length; i++) {
-                const code = str.charCodeAt(i);
-                len += (code > 255) ? 2 : 1;
+            if (!str) return 0; // 文字が空なら 0 を返す
+            let len = 0; // 合計の幅をためる変数
+            for (let i = 0; i < str.length; i++) { // 1文字ずつ順番に調べる
+                const code = str.charCodeAt(i); // 文字コードを取得
+                len += (code > 255) ? 2 : 1; // 全角なら2を足し、半角なら1を足す
             }
-            return len;
+            return len; // 計算した幅を返す
         }
 
-        // カレンダーの1マス内に文字として収まる長さか判定
+        // カレンダーの1マスに文字として収まる長さかどうかを判定する関数
         function fitsInCalendarCell(text) {
-            return getDisplayWidth(text) <= 8;
+            return getDisplayWidth(text) <= 8; // 幅8以下（全角4文字程度まで）なら true を返す
         }
 
-        // 過ぎた日（今日より前の日付）の「時間割変更・持ち物・課題・イベント」を削除し、「テスト期間（テスト科目）」だけを残す
+        // 今日より前の日付の予定を整理し、「テスト科目（isTest: true）」だけを残して他を消す関数
         function cleanupPastCalendarEvents() {
-            const todayKey = formatDateKey(new Date());
-            let modified = false;
+            const todayKey = formatDateKey(new Date()); // 今日の日付を取得
+            let modified = false; // データを書き換えたかどうかの記録
 
             Object.keys(dayEvents).forEach(dateKey => {
-                if (dateKey < todayKey) {
+                if (dateKey < todayKey) { // 今日より過去の日付だったら
                     const originalLen = dayEvents[dateKey].length;
+                    // テスト科目（isTestがtrue）だけを残し、持ち物・課題・イベント・通常の変更は削除
                     dayEvents[dateKey] = dayEvents[dateKey].filter(ev => ev.type === 'change' && ev.isTest);
-                    if (dayEvents[dateKey].length !== originalLen) {
-                        modified = true;
-                    }
+                    if (dayEvents[dateKey].length !== originalLen) modified = true;
                     if (dayEvents[dateKey].length === 0) {
-                        delete dayEvents[dateKey];
+                        delete dayEvents[dateKey]; // 予定が0件になったら日付のキー自体も削除
                         modified = true;
                     }
                 }
             });
 
             if (modified) {
-                saveEventsData();
+                saveEventsData(); // 変更があったら保存データを更新
             }
         }
 
-        // ページ読み込み完了時の初期化処理
+        // ページが開かれた時に最初に実行される処理
         window.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            loadStoredData();
-            cleanupPastCalendarEvents();
-            checkAuthStatus();
-            renderHeaderDate();
+            lucide.createIcons(); // アイコンを描画
+            loadStoredData(); // 保存済みデータを読み込む
+            cleanupPastCalendarEvents(); // 過去日の予定を整理
+            checkAuthStatus(); // ログイン状態を確認して画面を描画
+            renderHeaderDate(); // ヘッダーに今日の日付を表示
         });
 
-        // localStorage から各種データを復元
+        // localStorage から保存済みのデータを読み込む関数
         function loadStoredData() {
             const storedMaster = localStorage.getItem(STORAGE_KEY_MASTER);
             if (storedMaster) try { masterTimetable = JSON.parse(storedMaster); } catch(e){}
@@ -530,12 +535,12 @@
             if (storedRanges) try { testRanges = JSON.parse(storedRanges); } catch(e){}
         }
 
-        // 各種データを localStorage に保存
+        // 各データを localStorage に保存する関数群
         function saveMasterData() { localStorage.setItem(STORAGE_KEY_MASTER, JSON.stringify(masterTimetable)); }
         function saveEventsData() { localStorage.setItem(STORAGE_KEY_EVENTS, JSON.stringify(dayEvents)); }
         function saveTestRangesData() { localStorage.setItem(STORAGE_KEY_TEST_RANGES, JSON.stringify(testRanges)); }
 
-        // ログイン状態を確認し、表示画面と各タブを描画
+        // ログイン状態を確認し、ログイン済みなら各画面を描画してログイン画面を隠す関数
         function checkAuthStatus() {
             const savedEmail = localStorage.getItem(STORAGE_KEY_USER);
             if (savedEmail) {
@@ -550,17 +555,17 @@
             }
         }
 
-        // ログインフォーム送信時の処理
+        // ログインボタンが押された時の処理
         function handleAuth(e) {
-            e.preventDefault();
+            e.preventDefault(); // ページのリロードを止める
             const email = document.getElementById('authEmail').value.trim();
             if (email) {
-                localStorage.setItem(STORAGE_KEY_USER, email);
-                checkAuthStatus();
+                localStorage.setItem(STORAGE_KEY_USER, email); // メールアドレスを保存
+                checkAuthStatus(); // メイン画面へ切り替え
             }
         }
 
-        // ログアウト確認＆実行
+        // ログアウトの確認ダイアログを出す関数
         function requestLogout() {
             openConfirmModal("ログアウトしますか？", "データへのアクセスが停止します。", () => {
                 localStorage.removeItem(STORAGE_KEY_USER);
@@ -569,14 +574,14 @@
             });
         }
 
-        // ヘッダーに現在の日付を表示
+        // ヘッダーに「YYYY年M月D日（曜）」形式で今日の日付を表示する関数
         function renderHeaderDate() {
             const now = new Date();
             const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
             document.getElementById('currentDateStr').innerText = now.toLocaleDateString('ja-JP', options);
         }
 
-        // 下部ナビゲーションのタブ切り替え処理
+        // 下部ナビゲーションのタブ（ホーム・カレンダー・課題・設定）を切り替える関数
         function switchTab(tabName) {
             cleanupPastCalendarEvents();
             ['home', 'calendar', 'assignments', 'settings'].forEach(tab => {
@@ -586,7 +591,7 @@
             });
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
-            // テスト期間・月間削除ボタンはカレンダータブでのみ表示
+            // カレンダータブの時だけヘッダー右上の「テスト期間」「月間削除」ボタンを表示
             const testBtnContainer = document.getElementById('testButtonHeaderContainer');
             if (tabName === 'calendar') {
                 testBtnContainer.classList.remove('hidden');
@@ -594,34 +599,36 @@
                 testBtnContainer.classList.add('hidden');
             }
 
+            // 切り替えたタブに合わせて中身を最新の状態に描画し直す
             if (tabName === 'home') renderWeeklyTimetable();
             if (tabName === 'calendar') renderCalendar();
             if (tabName === 'assignments') renderAssignmentsTab();
         }
 
-        // 指定日がテスト期間（土日祝を除く平日）に該当するか判定
+        // 指定した日付が「土日・祝日を除いたテスト期間内の平日」かどうかを判定する関数
         function isDateInTestRange(dateKey) {
             const d = new Date(dateKey + 'T00:00:00');
             const dayOfWeek = d.getDay();
-            if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+            if (dayOfWeek === 0 || dayOfWeek === 6) return false; // 土日は対象外
             const holidays = getJapaneseHolidays(d.getFullYear());
-            if (holidays[dateKey]) return false;
+            if (holidays[dateKey]) return false; // 祝日は対象外
 
             return testRanges.some(range => {
                 return dateKey >= range.startDate && dateKey <= range.endDate;
             });
         }
 
-        // ホームの「今週の時間割 (月〜日)」を描画
+        // ホーム画面の「今週の時間割 (月〜日)」を描画する関数
         function renderWeeklyTimetable() {
             const today = new Date();
             const currentDayOfWeek = today.getDay();
+            // 今週の月曜日を計算
             const mondayOffset = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
             const monday = new Date(today); monday.setDate(today.getDate() + mondayOffset);
             const holidays = getJapaneseHolidays(today.getFullYear());
 
             const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
-            const order = [1, 2, 3, 4, 5, 6, 0];
+            const order = [1, 2, 3, 4, 5, 6, 0]; // 月〜日の順で処理
 
             order.forEach(dayNum => {
                 const dayDate = new Date(monday);
@@ -632,7 +639,7 @@
                 const isTodayCol = dateKey === formatDateKey(today);
                 const inTest = isDateInTestRange(dateKey);
 
-                // 曜日・日付ヘッダーの表示更新
+                // 各曜日のヘッダーに「月/日」を追記し、今日なら色を変える
                 const headEl = document.getElementById(`h-head-${dayNum}`);
                 if (headEl) {
                     headEl.innerHTML = `${dayNames[dayNum]}<br><span class="text-[9px] text-slate-400">${dayDate.getMonth()+1}/${dayDate.getDate()}</span>`;
@@ -647,7 +654,7 @@
                 const dayTestSubjects = eventsForDay.filter(e => e.type === 'change' && e.isTest && parseInt(e.period) <= 4 && e.subject && e.subject.trim() !== '');
                 const hasAnyTestSubjectOnThisDay = dayTestSubjects.length > 0;
 
-                // 1限〜7限の各セルを描画
+                // 1限〜7限の各マスの中身を決定して描画
                 for (let p = 1; p <= 7; p++) {
                     const cell = document.getElementById(`cell-${dayNum}-${p}`);
                     if (!cell) continue;
@@ -662,7 +669,7 @@
                     }
 
                     if (inTest) {
-                        // テスト期間中の表示（1〜4限はテスト科目、未入力は薄い「-」、5限以降は「-」）
+                        // テスト期間中の表示（1〜4限はテスト科目、5限以降や未入力は「-」）
                         if (p <= 4) {
                             if (testSubjObj && testSubjObj.subject) {
                                 cell.className = baseStyle + "bg-amber-50 text-amber-900 border border-amber-300 rounded font-bold";
@@ -679,7 +686,7 @@
                             cell.innerHTML = `<span>-</span>`;
                         }
                     } else if (calendarChangeEvent) {
-                        // カレンダーで時間割変更を登録した場合のみ、目立つ赤系バッジで表示
+                        // カレンダーで時間割変更を登録した場合の表示
                         cell.className = baseStyle + "bg-rose-50 text-rose-900 border border-rose-200 rounded font-bold";
                         cell.innerHTML = `<span class="text-[8px] text-rose-600 font-extrabold">変更</span><span class="truncate w-full text-center">${escapeHtml(calendarChangeEvent.subject)}</span>`;
                     } else if (holidayName) {
@@ -692,9 +699,11 @@
                         cell.className = baseStyle + "bg-white text-slate-300";
                         cell.innerHTML = `<span>-</span>`;
                     } else {
+                        // 通常の基本時間割の教科名を表示
                         cell.className = baseStyle + "bg-white text-slate-700";
                         cell.innerHTML = `<span class="truncate w-full text-center">${escapeHtml(masterSubject)}</span>`;
                     }
+                    // マスをタップしたら、その日・その時限の変更/消去モーダルを開く
                     cell.onclick = () => openDayDetailModal(dateKey, 'home', p);
                 }
             });
@@ -702,7 +711,7 @@
             renderTodaySummary();
         }
 
-        // ホーム下部の「本日の持ち物・明日の持ち物・1週間以内の課題」を描画
+        // ホーム画面下部の「本日の持ち物・明日の持ち物・1週間以内の課題」を更新する関数
         function renderTodaySummary() {
             const today = new Date();
             const todayKey = formatDateKey(today);
@@ -713,6 +722,7 @@
             const tomorrowKey = formatDateKey(tomorrow);
             const tomorrowEvents = dayEvents[tomorrowKey] || [];
 
+            // 本日の持ち物を表示
             const belongingsList = document.getElementById('todayBelongingsList');
             const belongings = todayEvents.filter(e => e.type === 'belonging');
             if (belongings.length > 0) {
@@ -721,6 +731,7 @@
                 belongingsList.innerHTML = `<li class="text-slate-400 italic">本日の持ち物はありません</li>`;
             }
 
+            // 明日の持ち物を表示
             const tomorrowBelongingsList = document.getElementById('tomorrowBelongingsList');
             const tomorrowBelongings = tomorrowEvents.filter(e => e.type === 'belonging');
             if (tomorrowBelongings.length > 0) {
@@ -729,6 +740,7 @@
                 tomorrowBelongingsList.innerHTML = `<li class="text-slate-400 italic">明日の持ち物はありません</li>`;
             }
 
+            // 今日から7日以内の提出課題を抽出して表示
             const upcomingList = document.getElementById('upcomingAssignmentsList');
             const sevenDaysLater = new Date(); sevenDaysLater.setDate(today.getDate() + 7);
 
@@ -752,7 +764,8 @@
             }
         }
 
-        // カレンダーグリッドを描画（マスに収まる短い文字は文字表示、長いものはカラフルなドット表示）
+        // カレンダーの1ヶ月分のマスを描画する関数
+        // 1マスに収まる短い文字はそのまま文字で書き、長い予定は種類ごとの色付きドットで表示する
         function renderCalendar() {
             cleanupPastCalendarEvents();
 
@@ -763,15 +776,15 @@
             const grid = document.getElementById('calendarDaysGrid');
             grid.innerHTML = '';
             const holidays = getJapaneseHolidays(year);
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1).getDay(); // 1日の曜日（0=日〜6=土）
+            const daysInMonth = new Date(year, month + 1, 0).getDate(); // その月の日数
 
-            // 月初までの空白マスを追加
+            // 月初までの空のマスを入れる
             for (let i = 0; i < firstDay; i++) {
                 grid.appendChild(document.createElement('div'));
             }
 
-            // 1日から末日まで各日セルを生成
+            // 1日から末日まで各日のマスを作る
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateObj = new Date(year, month, day);
                 const dateKey = formatDateKey(dateObj);
@@ -781,8 +794,10 @@
 
                 const dayCell = document.createElement('div');
                 dayCell.className = "min-h-[64px] p-1 border-t border-slate-100 cursor-pointer flex flex-col justify-start hover:bg-indigo-50/20 transition overflow-hidden";
+                // マスをタップしたら、その日の予定確認・追加モーダルを開く
                 dayCell.onclick = () => openDayDetailModal(dateKey, 'calendar');
 
+                // 日曜・祝日は赤、土曜は青、平日は濃いグレーで日付数字を表示
                 let numClass = "text-slate-700 font-bold text-xs";
                 if (dayOfWeek === 0 || isHoliday) numClass = "text-rose-600 font-bold text-xs";
                 else if (dayOfWeek === 6) numClass = "text-blue-600 font-bold text-xs";
@@ -790,40 +805,42 @@
                 let html = `<span class="${numClass} leading-none mb-1">${day}</span>`;
                 const events = dayEvents[dateKey] || [];
 
-                const textItemsHtml = [];
-                const dotColors = [];
+                const textItemsHtml = []; // マスに収まる短い文字バッジを入れる配列
+                const dotColors = [];     // 長い予定用の色付きドット（Tailwindの背景色クラス）を入れる配列
 
+                // テスト期間中の日は「テスト」バッジを表示
                 if (inTest) {
                     textItemsHtml.push(`<div class="text-[9px] leading-tight font-bold bg-amber-100 text-amber-800 rounded px-1 py-0.5 truncate">テスト</div>`);
                 }
 
+                // 各予定について、文字幅を見て「文字表示」か「ドット表示」かを振り分ける
                 events.forEach(ev => {
                     if (ev.type === 'change' && ev.isTest) {
-                        // テスト科目はテストバッジに集約するため個別表示しない
+                        // テスト科目は上の「テスト」バッジに含まれるためここではスキップ
                     } else if (ev.type === 'change' && !ev.isTest) {
                         const label = ev.subject === '-' ? `${ev.period}限休` : `${ev.period}限${ev.subject}`;
                         if (fitsInCalendarCell(label)) {
                             textItemsHtml.push(`<div class="text-[9px] leading-tight font-bold bg-rose-100 text-rose-800 rounded px-1 py-0.5 truncate">${escapeHtml(label)}</div>`);
                         } else {
-                            dotColors.push('bg-rose-500');
+                            dotColors.push('bg-rose-500'); // 時間割変更が長い場合は赤ドット
                         }
                     } else if (ev.type === 'belonging') {
                         if (fitsInCalendarCell(ev.title)) {
                             textItemsHtml.push(`<div class="text-[9px] leading-tight font-bold bg-purple-100 text-purple-800 rounded px-1 py-0.5 truncate">${escapeHtml(ev.title)}</div>`);
                         } else {
-                            dotColors.push('bg-purple-500');
+                            dotColors.push('bg-purple-500'); // 持ち物が長い場合は紫ドット
                         }
                     } else if (ev.type === 'assignment') {
                         if (fitsInCalendarCell(ev.title)) {
                             textItemsHtml.push(`<div class="text-[9px] leading-tight font-bold bg-emerald-100 text-emerald-800 rounded px-1 py-0.5 truncate">${escapeHtml(ev.title)}</div>`);
                         } else {
-                            dotColors.push('bg-emerald-500');
+                            dotColors.push('bg-emerald-500'); // 課題が長い場合は緑ドット
                         }
                     } else if (ev.type === 'event') {
                         if (fitsInCalendarCell(ev.title)) {
                             textItemsHtml.push(`<div class="text-[9px] leading-tight font-bold bg-sky-100 text-sky-800 rounded px-1 py-0.5 truncate">${escapeHtml(ev.title)}</div>`);
                         } else {
-                            dotColors.push('bg-sky-500');
+                            dotColors.push('bg-sky-500'); // イベントが長い場合は水色ドット
                         }
                     }
                 });
@@ -840,7 +857,7 @@
             }
         }
 
-        // 「課題」タブの登録済み課題一覧を描画
+        // 「課題」タブの登録済み課題一覧を描画する関数
         function renderAssignmentsTab() {
             const listEl = document.getElementById('allAssignmentsList');
             let allAssignments = [];
@@ -852,6 +869,7 @@
                 });
             });
 
+            // 提出日順に並べ替え
             allAssignments.sort((a, b) => a.dateKey.localeCompare(b.dateKey));
             document.getElementById('assignmentsCountBadge').innerText = `${allAssignments.length}件`;
 
@@ -874,13 +892,13 @@
             lucide.createIcons();
         }
 
-        // 前月・次月へカレンダーを切り替える
+        // カレンダーの表示月を前後にずらす関数（offset: -1 で前月、+1 で次月）
         function changeMonth(offset) {
             selectedCalendarDate.setMonth(selectedCalendarDate.getMonth() + offset);
             renderCalendar();
         }
 
-        // 年月選択モーダルを開く
+        // 年月選択モーダルを開き、年と月の選択肢を現在表示中の月に合わせる関数
         function openMonthPickerModal() {
             const yearSelect = document.getElementById('pickerYearSelect');
             const monthSelect = document.getElementById('pickerMonthSelect');
@@ -900,12 +918,12 @@
             document.getElementById('monthPickerModal').classList.remove('opacity-0', 'pointer-events-none');
         }
 
-        // 年月選択モーダルを閉じる
+        // 年月選択モーダルを閉じる関数
         function closeMonthPickerModal() {
             document.getElementById('monthPickerModal').classList.add('opacity-0', 'pointer-events-none');
         }
 
-        // 選択した年月をカレンダーに反映
+        // 年月選択モーダルで選んだ年・月をカレンダーに反映する関数
         function applySelectedMonthYear() {
             const year = parseInt(document.getElementById('pickerYearSelect').value);
             const month = parseInt(document.getElementById('pickerMonthSelect').value);
@@ -915,7 +933,7 @@
             closeMonthPickerModal();
         }
 
-        // カレンダー右上のゴミ箱ボタン：表示中の月の「時間割変更・持ち物・課題・イベント・テスト期間」をすべて削除
+        // 表示中の月の予定やテスト期間をまとめて削除する確認＆実行関数
         function confirmClearCurrentMonth() {
             const year = selectedCalendarDate.getFullYear();
             const month = selectedCalendarDate.getMonth();
@@ -928,14 +946,14 @@
                 `${year}年${month + 1}月の予定を削除`,
                 `${year}年${month + 1}月の「時間割変更」「持ち物」「課題提出日」「イベント」「テスト期間」をすべて削除しますか？`,
                 () => {
-                    // 対象月の日別イベントを削除
+                    // 1. 表示中の月に含まれる日ごとの予定をすべて削除
                     Object.keys(dayEvents).forEach(dateKey => {
                         if (dateKey.startsWith(monthPrefix)) {
                             delete dayEvents[dateKey];
                         }
                     });
 
-                    // 対象月と重なるテスト期間を削除（他月にまたがる部分は維持）
+                    // 2. 表示中の月にかかるテスト期間を削除（別月まで続く場合はその月以外を残す）
                     const updatedRanges = [];
                     testRanges.forEach(range => {
                         if (range.endDate < monthFirstKey || range.startDate > monthLastKey) {
@@ -971,7 +989,7 @@
             );
         }
 
-        // --- テスト期間設定モーダル関連 ---
+        // --- テスト期間設定モーダルの処理 ---
         function openTestPeriodModal() {
             const todayStr = formatDateKey(new Date());
             const startInput = document.getElementById('testStartDate');
@@ -998,7 +1016,7 @@
             document.getElementById('testStep2').classList.add('hidden');
         }
 
-        // テスト日程を確定し、土日祝を除いた平日分の1〜4限科目入力フォームを生成
+        // テスト期間の日程から、土日と祝日を除いた「平日」だけの1〜4限科目入力欄を作る関数
         function proceedToTestSubjects(specificRange = null) {
             let startStr, endStr;
             if (specificRange) {
@@ -1012,6 +1030,7 @@
             }
             const errEl = document.getElementById('testDateError');
 
+            // 開始日と終了日の前後関係をチェック
             if (!startStr || !endStr || startStr > endStr) {
                 errEl.classList.remove('hidden');
                 return;
@@ -1035,13 +1054,13 @@
             let current = new Date(startDate);
             let dayCount = 0;
 
+            // 開始日から終了日まで1日ずつ調べ、平日（土日祝以外）だけ入力カードを作る
             while (current <= endDate) {
                 const dayOfWeek = current.getDay();
                 const dateKey = formatDateKey(current);
                 const holidays = getJapaneseHolidays(current.getFullYear());
                 const isHoliday = !!holidays[dateKey];
 
-                // 土日・祝日をスキップ
                 if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday) {
                     dayCount++;
                     const m = current.getMonth() + 1;
@@ -1079,7 +1098,7 @@
             document.getElementById('testStep2').classList.remove('hidden');
         }
 
-        // 入力されたテスト科目を保存
+        // 入力された1〜4限のテスト科目を保存する関数
         function saveTestSubjects() {
             const inputs = document.querySelectorAll('.test-subject-input');
             inputs.forEach(input => {
@@ -1089,6 +1108,7 @@
 
                 if (!dayEvents[dateKey]) dayEvents[dateKey] = [];
 
+                // 同じ日・同じ時限の古いテスト科目データを一度消してから入れ直す
                 dayEvents[dateKey] = dayEvents[dateKey].filter(e => !(e.type === 'change' && e.isTest && String(e.period) === String(period)));
 
                 if (subject) {
@@ -1112,7 +1132,7 @@
             closeTestPeriodModal();
         }
 
-        // --- 日別詳細・時間割変更モーダル関連 ---
+        // --- 日別詳細・時間割変更モーダルの処理 ---
         function openDayDetailModal(dateKey, mode = 'calendar', defaultPeriod = 1) {
             activeDayKey = dateKey;
             activeModalMode = mode;
@@ -1124,7 +1144,7 @@
             const holidayName = holidays[dateKey];
             document.getElementById('dayDetailModalSubtitle').innerText = holidayName ? `祝日: ${holidayName}` : '';
 
-            // テスト期間中であれば、科目変更や期間削除のボタンを表示
+            // テスト期間中の日を開いた時は、テスト科目変更・期間削除のボタンを表示
             const matchedRangeIndex = testRanges.findIndex(range => dateKey >= range.startDate && dateKey <= range.endDate);
             const actionsContainer = document.getElementById('testPeriodActionsContainer');
             
@@ -1160,7 +1180,7 @@
             const clearBtn = document.getElementById('clearPeriodBtn');
 
             if (mode === 'home') {
-                // ホーム時間割から開いた場合：予定一覧は隠し、基本時間割の変更・消去に特化
+                // ホーム時間割からタップされた場合は、基本時間割の変更と消去だけを表示
                 eventsListSection.classList.add('hidden');
                 addFormSection.classList.remove('border-t', 'pt-3');
                 selectWrapper.classList.add('hidden');
@@ -1170,7 +1190,7 @@
                 primaryBtn.innerText = '時間割を変更する';
                 clearBtn.classList.remove('hidden');
             } else {
-                // カレンダーから開いた場合：予定一覧と各種予定の追加フォームを表示
+                // カレンダーからタップされた場合は、登録済み予定一覧と新規追加フォームを表示
                 eventsListSection.classList.remove('hidden');
                 addFormSection.classList.add('border-t', 'pt-3');
                 selectWrapper.classList.remove('hidden');
@@ -1185,7 +1205,7 @@
             document.body.classList.add('modal-active');
         }
 
-        // ホームから選択した時限の基本時間割を消去
+        // ホーム時間割から選んだ時限の授業を消去する関数
         function requestClearPeriod() {
             const period = parseInt(document.getElementById('changePeriodSelect').value);
             openConfirmModal("この時間を消しますか？", `${period}限目の授業を消去します。`, () => {
@@ -1200,7 +1220,7 @@
             });
         }
 
-        // 該当日のテスト期間を科目編集画面で開く
+        // 該当日のテスト期間を編集画面で開く関数
         function editSpecificTestRange(rangeIndex) {
             const range = testRanges[rangeIndex];
             closeDayDetailModal();
@@ -1208,7 +1228,7 @@
             proceedToTestSubjects(range);
         }
 
-        // 該当日のテスト期間とテスト科目を削除
+        // 該当日のテスト期間と、その期間に入ったテスト科目を削除する関数
         function deleteSpecificTestRange(rangeIndex) {
             openConfirmModal("テスト期間の削除", "このテスト期間（日程および登録されたテスト科目）をすべて削除しますか？", () => {
                 const range = testRanges[rangeIndex];
@@ -1233,13 +1253,13 @@
             });
         }
 
-        // 日別詳細モーダルを閉じる
+        // 日別詳細モーダルを閉じる関数
         function closeDayDetailModal() {
             document.getElementById('dayDetailModal').classList.add('opacity-0', 'pointer-events-none');
             document.body.classList.remove('modal-active');
         }
 
-        // モーダル内の「登録されている予定」一覧を描画
+        // モーダル内の「登録されている予定」一覧を描画する関数
         function renderDayEventsList() {
             const listEl = document.getElementById('dayEventsList');
             const allEvents = dayEvents[activeDayKey] || [];
@@ -1284,7 +1304,7 @@
             lucide.createIcons();
         }
 
-        // 選択した予定種別に応じて入力フォームの表示を切り替え
+        // 選んだ予定の種類（時間割変更・持ち物・課題提出日・イベント）に合わせて入力欄を切り替える関数
         function toggleEventTypeFields() {
             const type = document.getElementById('eventTypeSelect').value;
             document.getElementById('fieldTimetableChange').classList.toggle('hidden', type !== 'change');
@@ -1293,10 +1313,10 @@
             document.getElementById('fieldEvent').classList.toggle('hidden', type !== 'event');
         }
 
-        // 時間割変更または各種予定を追加・更新
+        // 時間割の変更、またはカレンダーの予定を追加・保存する関数
         function requestAddDayEvent() {
             if (activeModalMode === 'home') {
-                // ホームからの変更は基本時間割（masterTimetable）のみを更新
+                // ホーム画面からの変更は、曜日ごとの基本時間割（masterTimetable）を更新する
                 openConfirmModal("時間割を変更しますか？", "今週の時間割の科目を更新します。", () => {
                     const period = parseInt(document.getElementById('changePeriodSelect').value);
                     const subject = document.getElementById('changeSubjectInput').value.trim();
@@ -1318,7 +1338,7 @@
                 return;
             }
 
-            // カレンダーからの追加処理
+            // カレンダー画面からの追加は、指定した日付（dayEvents[activeDayKey]）に予定を追加する
             openConfirmModal("追加しますか？", "選択した項目を登録します。", () => {
                 const type = document.getElementById('eventTypeSelect').value;
                 if (!dayEvents[activeDayKey]) dayEvents[activeDayKey] = [];
@@ -1350,7 +1370,7 @@
             });
         }
 
-        // 日別詳細モーダルから特定の予定を削除
+        // 日別詳細モーダルから特定の予定を1件削除する関数
         function requestDeleteEvent(index) {
             openConfirmModal("削除しますか？", "元に戻すことはできません。", () => {
                 if (dayEvents[activeDayKey]) {
@@ -1365,7 +1385,7 @@
             });
         }
 
-        // 「課題」タブから特定の課題を削除
+        // 「課題」タブから特定の課題を1件削除する関数
         function requestDeleteSpecificAssignment(dateKey, index) {
             openConfirmModal("課題を削除しますか？", "元に戻すことはできません。", () => {
                 if (dayEvents[dateKey]) {
@@ -1379,7 +1399,7 @@
             });
         }
 
-        // 全データの初期化
+        // 設定画面からすべてのデータを初期化する関数
         function confirmResetAllData() {
             openConfirmModal("初期化しますか？", "全データが完全に削除されます。", () => {
                 localStorage.clear();
@@ -1390,7 +1410,7 @@
             });
         }
 
-        // --- 汎用確認ダイアログ制御 ---
+        // --- 汎用確認ダイアログを開く・閉じる関数 ---
         function openConfirmModal(title, msg, onExecute) {
             document.getElementById('confirmModalTitle').innerText = title;
             document.getElementById('confirmModalMsg').innerText = msg;
@@ -1406,7 +1426,7 @@
             document.getElementById('confirmModal').classList.add('opacity-0', 'pointer-events-none');
         }
 
-        // XSS対策用のHTMLエスケープ処理
+        // 入力された文字に含まれる `<` や `>` などを安全な文字に変換する関数（不正なHTMLタグ実行を防ぐ）
         function escapeHtml(str) {
             return str ? str.replace(/&/g, "&").replace(/</g, "<").replace(/>/g, ">") : '';
         }
