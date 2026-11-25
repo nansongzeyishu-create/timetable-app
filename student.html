@@ -48,7 +48,7 @@
          メインコンテンツ領域（各タブの中身を表示する枠）
          ========================================== -->
     <main class="flex-1 p-3 max-w-md mx-auto w-full space-y-3 pb-6">
-        <!-- 共通ヘッダー：今日の日付・科目登録ボタン・使い方ボタン・カレンダータブ専用操作ボタンを表示 -->
+        <!-- 共通ヘッダー：今日の日付・科目登録ボタン・使い方ボタンを表示 -->
         <header class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center gap-2">
             <div class="min-w-0">
                 <span class="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">TODAY</span>
@@ -66,18 +66,6 @@
                     <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
                     <span>使い方</span>
                 </button>
-                <!-- カレンダータブを開いている時だけ見えるボタン群 -->
-                <div id="testButtonHeaderContainer" class="hidden flex items-center gap-1.5">
-                    <!-- テスト期間・テスト科目を設定するモーダルを開くボタン -->
-                    <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm">
-                        <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
-                        <span>テスト期間</span>
-                    </button>
-                    <!-- 表示中の月の予定やテスト期間をまとめて削除するボタン -->
-                    <button onclick="confirmClearCurrentMonth()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="表示中の月の予定をすべて削除">
-                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                    </button>
-                </div>
             </div>
         </header>
 
@@ -162,6 +150,24 @@
              タブ2：カレンダー画面（月ごとの予定・テスト期間・時間割変更の管理）
              ------------------------------------------ -->
         <section id="tab-calendar" class="hidden space-y-3">
+            <!-- カレンダー専用の操作バー（テスト期間設定・表示中の月の予定一括削除） -->
+            <div class="bg-white rounded-2xl px-3 py-2.5 shadow-sm border border-slate-200 flex justify-between items-center gap-2">
+                <span class="text-xs font-extrabold text-slate-700 flex items-center gap-1.5">
+                    <i data-lucide="calendar-days" class="w-4 h-4 text-indigo-500"></i>
+                    <span>予定・テスト管理</span>
+                </span>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-2.5 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm">
+                        <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
+                        <span>テスト期間</span>
+                    </button>
+                    <button onclick="confirmClearCurrentMonth()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-1.5 rounded-xl transition flex items-center gap-1 shadow-sm" title="表示中の月の予定をすべて削除">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        <span>月間削除</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- 前月・次月へ移動する矢印と、年月選択モーダルを開くボタン -->
             <div class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center">
                 <button onclick="changeMonth(-1)" class="p-2 rounded-xl border hover:bg-slate-50 text-slate-600">
@@ -354,7 +360,7 @@
                         <span>テスト期間の設定</span>
                     </div>
                     <p class="pl-6 text-slate-600">
-                        カレンダータブ右上の「テスト期間」から開始日と終了日を選ぶと、土日と祝日を除いた平日ごとに1〜4限のテスト科目をまとめて登録できます。
+                        カレンダータブ上部の「テスト期間」から開始日と終了日を選ぶと、土日と祝日を除いた平日ごとに1〜4限のテスト科目をまとめて登録できます。
                     </p>
                 </div>
 
@@ -695,7 +701,6 @@
 
         // 「時間割変更」や「テスト科目」など、すべての教科を入れる枠の選択肢を最新状態にする関数
         function refreshAllSubjectOptions() {
-            // 1. 時間割変更用プルダウン（#changeSubjectSelect）の中身を更新
             const changeSelect = document.getElementById('changeSubjectSelect');
             const changeInput = document.getElementById('changeSubjectInput');
             if (changeSelect) {
@@ -707,7 +712,6 @@
                 }).join('');
             }
 
-            // 2. テスト科目入力欄（ステップ2が開いている場合）のプルダウンも更新
             document.querySelectorAll('.test-subject-select').forEach(sel => {
                 const slot = sel.closest('.test-subject-slot');
                 const inp = slot ? slot.querySelector('.test-subject-input') : null;
@@ -883,13 +887,6 @@
                 if (mbBtn) mbBtn.className = tab === tabName ? "flex flex-col items-center space-y-0.5 text-indigo-600" : "flex flex-col items-center space-y-0.5 text-slate-400";
             });
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
-
-            const testBtnContainer = document.getElementById('testButtonHeaderContainer');
-            if (tabName === 'calendar') {
-                testBtnContainer.classList.remove('hidden');
-            } else {
-                testBtnContainer.classList.add('hidden');
-            }
 
             if (tabName === 'home') renderWeeklyTimetable();
             if (tabName === 'calendar') renderCalendar();
@@ -1459,7 +1456,6 @@
             const primaryBtn = document.getElementById('primaryAddEventBtn');
             const clearBtn = document.getElementById('clearPeriodBtn');
 
-            // 入力欄をリセットしてから最新の科目選択肢を反映
             document.getElementById('changeSubjectInput').value = '';
             refreshAllSubjectOptions();
 
