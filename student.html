@@ -48,24 +48,31 @@
          メインコンテンツ領域（各タブの中身を表示する枠）
          ========================================== -->
     <main class="flex-1 p-3 max-w-md mx-auto w-full space-y-3 pb-6">
-        <!-- 共通ヘッダー：今日の日付と、カレンダータブ専用の操作ボタンを表示 -->
-        <header class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center">
-            <div>
+        <!-- 共通ヘッダー：今日の日付・使い方ボタン・カレンダータブ専用操作ボタンを表示 -->
+        <header class="bg-white rounded-2xl p-3 shadow-sm border border-slate-200 flex justify-between items-center gap-2">
+            <div class="min-w-0">
                 <span class="text-[10px] font-bold text-indigo-600 tracking-wider uppercase">TODAY</span>
                 <!-- 現在の日付がJavaScriptからここに書き込まれる -->
-                <h1 class="text-base font-extrabold text-slate-900 leading-tight" id="currentDateStr"></h1>
+                <h1 class="text-base font-extrabold text-slate-900 leading-tight truncate" id="currentDateStr"></h1>
             </div>
-            <!-- カレンダータブを開いている時だけ見えるボタン群 -->
-            <div id="testButtonHeaderContainer" class="hidden flex items-center gap-1.5">
-                <!-- テスト期間・テスト科目を設定するモーダルを開くボタン -->
-                <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm">
-                    <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
-                    <span>テスト期間</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+                <!-- 初めて使う人向けの「使い方」ガイドモーダルを開くボタン -->
+                <button onclick="openGuideModal()" class="bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 border border-indigo-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="アプリの使い方を表示">
+                    <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+                    <span>使い方</span>
                 </button>
-                <!-- 表示中の月の予定やテスト期間をまとめて削除するボタン -->
-                <button onclick="confirmClearCurrentMonth()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="表示中の月の予定をすべて削除">
-                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
+                <!-- カレンダータブを開いている時だけ見えるボタン群 -->
+                <div id="testButtonHeaderContainer" class="hidden flex items-center gap-1.5">
+                    <!-- テスト期間・テスト科目を設定するモーダルを開くボタン -->
+                    <button onclick="openTestPeriodModal()" class="bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-700 border border-amber-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm">
+                        <i data-lucide="pen-tool" class="w-3.5 h-3.5"></i>
+                        <span>テスト期間</span>
+                    </button>
+                    <!-- 表示中の月の予定やテスト期間をまとめて削除するボタン -->
+                    <button onclick="confirmClearCurrentMonth()" class="bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 font-bold text-xs px-2.5 py-2 rounded-xl transition flex items-center gap-1 shadow-sm" title="表示中の月の予定をすべて削除">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -231,6 +238,81 @@
             <i data-lucide="settings" class="w-5 h-5"></i><span class="text-[10px] font-bold">設定</span>
         </button>
     </nav>
+
+    <!-- ==========================================
+         モーダル0：初めて使う人向けの「使い方」ガイド画面
+         ========================================== -->
+    <div id="guideModal" class="modal opacity-0 pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-indigo-50">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="help-circle" class="w-5 h-5 text-indigo-600"></i>
+                    <h3 class="font-extrabold text-indigo-950 text-sm">スクール手帳の使い方</h3>
+                </div>
+                <button onclick="closeGuideModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-4 overflow-y-auto space-y-3.5 text-xs text-slate-700 leading-relaxed">
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-1">
+                    <div class="font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">1</span>
+                        <span>今週の時間割（ホーム）</span>
+                    </div>
+                    <p class="pl-6 text-slate-600">
+                        授業のマスをタップすると、その時間の科目を変更したり「この時間を消す」で空きコマにしたりできます。カレンダーから時間割変更を登録すると、ホーム上で赤系の目立つ表示になります。
+                    </p>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-1.5">
+                    <div class="font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">2</span>
+                        <span>カレンダーで予定を追加・確認</span>
+                    </div>
+                    <p class="pl-6 text-slate-600">
+                        日付をタップすると、その日の予定一覧の確認や、「時間割変更」「持ち物」「課題提出日」「イベント」の追加ができます。
+                    </p>
+                    <div class="pl-6 pt-1 space-y-1 text-[11px] text-slate-600">
+                        <div>・マスに収まる短い文字はそのまま文字で表示されます。</div>
+                        <div>・長い予定は種類ごとの色付きドットになります：</div>
+                        <div class="flex flex-wrap gap-2 pt-0.5 font-bold">
+                            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>時間割変更</span>
+                            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>持ち物</span>
+                            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>課題</span>
+                            <span class="inline-flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>イベント</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-1">
+                    <div class="font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">3</span>
+                        <span>テスト期間の設定</span>
+                    </div>
+                    <p class="pl-6 text-slate-600">
+                        カレンダータブ右上の「テスト期間」から開始日と終了日を選ぶと、土日と祝日を除いた平日ごとに1〜4限のテスト科目をまとめて登録できます。
+                    </p>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-1">
+                    <div class="font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">4</span>
+                        <span>課題一覧と過去日の自動整理</span>
+                    </div>
+                    <p class="pl-6 text-slate-600">
+                        登録した課題は「課題」タブに提出日順でまとまります。また、今日より前の日の予定はテスト科目だけを残して自動で整理されます。
+                    </p>
+                </div>
+            </div>
+
+            <div class="p-3.5 border-t bg-white">
+                <button onclick="closeGuideModal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-md transition">
+                    わかった！
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- ==========================================
          モーダル1：年と月を選んでカレンダーをジャンプする画面
@@ -445,6 +527,19 @@
         let dayEvents = {};   // 各日付ごとの予定（時間割変更・持ち物・課題・イベント・テスト科目）を入れる箱
         let testRanges = [];  // テスト期間の「開始日」と「終了日」のまとまりを入れる配列
 
+        // 初めて使う人向けの「使い方」モーダルを開く関数
+        function openGuideModal() {
+            document.getElementById('guideModal').classList.remove('opacity-0', 'pointer-events-none');
+            document.body.classList.add('modal-active');
+            lucide.createIcons();
+        }
+
+        // 「使い方」モーダルを閉じる関数
+        function closeGuideModal() {
+            document.getElementById('guideModal').classList.add('opacity-0', 'pointer-events-none');
+            document.body.classList.remove('modal-active');
+        }
+
         // 指定された年の日本の祝日一覧を作って返す関数
         function getJapaneseHolidays(year) {
             const holidays = {};
@@ -591,7 +686,7 @@
             });
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
 
-            // カレンダータブの時だけヘッダー右上の「テスト期間」「月間削除」ボタンを表示
+            // カレンダータブの時だけヘッダー右側の「テスト期間」「月間削除」ボタンを表示
             const testBtnContainer = document.getElementById('testButtonHeaderContainer');
             if (tabName === 'calendar') {
                 testBtnContainer.classList.remove('hidden');
