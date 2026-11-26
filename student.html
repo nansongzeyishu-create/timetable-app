@@ -304,7 +304,7 @@
 
             <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
                 <p class="text-slate-600 leading-relaxed">
-                    1年間に履修する科目を登録してください。ここで登録した科目は、時間割変更やテスト科目の入力欄で選択肢として選べるようになります。
+                    1年間に履修する科目を登録してください。今週の時間割に入っている科目は自動で入っています。追加や削除も自由にできます。
                 </p>
 
                 <!-- 新しい科目を追加する入力フォーム -->
@@ -354,10 +354,10 @@
                 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 space-y-1">
                     <div class="font-extrabold text-slate-900 flex items-center gap-1.5">
                         <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] flex items-center justify-center font-bold">1</span>
-                        <span>最初に「科目登録」で1年間の科目を追加</span>
+                        <span>「科目登録」で履修科目を管理</span>
                     </div>
                     <p class="pl-6 text-slate-600">
-                        上部の「科目登録」ボタンから履修科目を入れておくと、時間割変更やテスト科目の入力枠で選択肢として選べるようになります。
+                        今週の時間割に入っている科目は自動で「科目登録」に入っています。新しい科目の追加や不要な科目の削除もいつでもできます。
                     </p>
                 </div>
 
@@ -397,7 +397,7 @@
                         <span>テスト期間の設定</span>
                     </div>
                     <p class="pl-6 text-slate-600">
-                        カレンダータブ上部の「テスト期間」から開始日と終了日を選ぶと、土日と祝日を除いた平日ごとに1〜4限のテスト科目をまとめて登録できます。テスト期間中の日をタップすると、その日のテスト科目を大きく確認できます。
+                        カレンダータブ上部の「テスト期間」から開始日と終了日を選ぶと、土日と祝日を除いた平日ごとに1〜4限のテスト科目をまとめて登録できます。テスト期間中の日をタップすると、その日のテスト科目を大きく確認でき、提出物・持ち物も個別に消せます。
                     </p>
                 </div>
 
@@ -648,8 +648,36 @@
         let dayEvents = {};   // 各日付ごとの予定（時間割変更・持ち物・課題・イベント・テスト科目）を入れる箱
         let testRanges = [];  // テスト期間の「開始日」と「終了日」のまとまりを入れる配列
 
-        // 1年間に履修する科目のリスト（初期状態は空で、ユーザーが「科目登録」から追加・削除する）
+        // 1年間に履修する科目のリスト（今週の時間割に入っている科目をすべて入れる）
         let annualSubjects = [];
+
+        // 現在の「今週の時間割（masterTimetable）」に入っているすべての科目を重複なしで抽出する関数
+        function collectTimetableSubjects() {
+            const found = [];
+            [1, 2, 3, 4, 5, 6, 0].forEach(dayNum => {
+                const dayMap = masterTimetable[dayNum] || {};
+                for (let p = 1; p <= 7; p++) {
+                    const subj = (dayMap[p] || '').trim();
+                    if (subj && !found.includes(subj)) {
+                        found.push(subj);
+                    }
+                }
+            });
+            return found;
+        }
+
+        // 今週の時間割にある科目を annualSubjects にすべて含めた状態に同期する関数
+        function syncTimetableSubjectsIntoAnnualSubjects(persist = false) {
+            const timetableSubs = collectTimetableSubjects();
+            timetableSubs.forEach(subj => {
+                if (!annualSubjects.includes(subj)) {
+                    annualSubjects.push(subj);
+                }
+            });
+            if (persist) {
+                saveSubjectsData();
+            }
+        }
 
         // 科目リストを localStorage に保存する関数
         function saveSubjectsData() {
@@ -658,6 +686,7 @@
 
         // 「科目登録」モーダルを開く関数
         function openSubjectManagerModal() {
+            syncTimetableSubjectsIntoAnnualSubjects(true);
             renderRegisteredSubjectsList();
             document.getElementById('subjectManagerModal').classList.remove('opacity-0', 'pointer-events-none');
             document.body.classList.add('modal-active');
@@ -817,6 +846,8 @@
                     });
                     masterTimetable[activeBulkDayOfWeek] = newDayMap;
                     saveMasterData();
+                    syncTimetableSubjectsIntoAnnualSubjects(true);
+                    refreshAllSubjectOptions();
                     renderWeeklyTimetable();
                     closeDayBulkEditModal();
                 }
@@ -970,6 +1001,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             loadStoredData();
+            syncTimetableSubjectsIntoAnnualSubjects(true);
             refreshAllSubjectOptions();
             cleanupPastCalendarEvents();
             checkAuthStatus();
@@ -1596,7 +1628,30 @@
             closeTestPeriodModal();
         }
 
-        // テスト期間中の日をタップした時、「この日のテスト科目」を大きく表示するHTMLを作る関数
+        // テスト週間中の日をタップした時に「この日の提出物・持ち物」を1件削除する関数
+        function requestDeleteTestDaySubmission(dateKey, eventIndex, matchedRangeIndex) {
+            openConfirmModal("削除しますか？", "この提出物・持ち物を削除します。", () => {
+                if (dayEvents[dateKey]) {
+                    dayEvents[dateKey].splice(eventIndex, 1);
+                    if (dayEvents[dateKey].length === 0) {
+                        delete dayEvents[dateKey];
+                    }
+                    saveEventsData();
+                }
+
+                const actionsContainer = document.getElementById('testPeriodActionsContainer');
+                if (actionsContainer && testRanges[matchedRangeIndex]) {
+                    actionsContainer.innerHTML = buildTestDayOverviewHtml(dateKey, testRanges[matchedRangeIndex], matchedRangeIndex);
+                    lucide.createIcons();
+                }
+
+                renderCalendar();
+                renderWeeklyTimetable();
+                renderAssignmentsTab();
+            });
+        }
+
+        // テスト期間中の日をタップした時、「この日のテスト科目」を大きく表示し、提出物・持ち物を個別に削除できるHTMLを作る関数
         function buildTestDayOverviewHtml(dateKey, range, matchedRangeIndex) {
             const eventsForDay = dayEvents[dateKey] || [];
             const activeTestItems = [1, 2, 3, 4]
@@ -1620,29 +1675,39 @@
                     </div>
                 `;
 
-            const assignments = eventsForDay.filter(e => e.type === 'assignment');
-            const belongings = eventsForDay.filter(e => e.type === 'belonging');
+            const submissions = eventsForDay
+                .map((ev, idx) => ({ ...ev, originalIndex: idx }))
+                .filter(ev => ev.type === 'assignment' || ev.type === 'belonging');
 
             let submissionsHtml = '';
-            if (assignments.length === 0 && belongings.length === 0) {
+            if (submissions.length === 0) {
                 submissionsHtml = `<p class="text-[11px] text-slate-400 italic py-1">この日の提出物・持ち物は登録されていません</p>`;
             } else {
-                const rows = [];
-                assignments.forEach(a => {
-                    rows.push(`
-                        <div class="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5">
-                            <span class="text-xs font-extrabold text-emerald-950 truncate">${escapeHtml(a.title)}</span>
-                            <span class="text-[10px] font-bold text-emerald-800 bg-emerald-200/80 px-1.5 py-0.5 rounded shrink-0">課題${a.time ? ` ${a.time}` : ''}</span>
-                        </div>
-                    `);
-                });
-                belongings.forEach(b => {
-                    rows.push(`
+                const rows = submissions.map(item => {
+                    if (item.type === 'assignment') {
+                        return `
+                            <div class="flex items-center justify-between gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-2.5 py-1.5">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <span class="text-xs font-extrabold text-emerald-950 truncate">${escapeHtml(item.title)}</span>
+                                    <span class="text-[10px] font-bold text-emerald-800 bg-emerald-200/80 px-1.5 py-0.5 rounded shrink-0">課題${item.time ? ` ${item.time}` : ''}</span>
+                                </div>
+                                <button type="button" onclick="requestDeleteTestDaySubmission('${dateKey}', ${item.originalIndex}, ${matchedRangeIndex})" class="text-emerald-700 hover:text-rose-600 p-1 shrink-0 transition" title="削除">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        `;
+                    }
+                    return `
                         <div class="flex items-center justify-between gap-2 bg-purple-50 border border-purple-200 rounded-xl px-2.5 py-1.5">
-                            <span class="text-xs font-extrabold text-purple-950 truncate">${escapeHtml(b.title)}</span>
-                            <span class="text-[10px] font-bold text-purple-800 bg-purple-200/80 px-1.5 py-0.5 rounded shrink-0">持ち物</span>
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="text-xs font-extrabold text-purple-950 truncate">${escapeHtml(item.title)}</span>
+                                <span class="text-[10px] font-bold text-purple-800 bg-purple-200/80 px-1.5 py-0.5 rounded shrink-0">持ち物</span>
+                            </div>
+                            <button type="button" onclick="requestDeleteTestDaySubmission('${dateKey}', ${item.originalIndex}, ${matchedRangeIndex})" class="text-purple-700 hover:text-rose-600 p-1 shrink-0 transition" title="削除">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
                         </div>
-                    `);
+                    `;
                 });
                 submissionsHtml = `<div class="space-y-1.5">${rows.join('')}</div>`;
             }
@@ -1881,6 +1946,8 @@
 
                     document.getElementById('changeSubjectInput').value = '';
                     saveMasterData();
+                    syncTimetableSubjectsIntoAnnualSubjects(true);
+                    refreshAllSubjectOptions();
                     renderWeeklyTimetable();
                     closeDayDetailModal();
                 });
@@ -1962,7 +2029,8 @@
                 masterTimetable = { 1: {}, 2: {}, 3: {}, 4: {}, 5: {}, 6: {}, 0: {} };
                 dayEvents = {};
                 testRanges = [];
-                annualSubjects = [];
+                annualSubjects = collectTimetableSubjects();
+                saveSubjectsData();
                 refreshAllSubjectOptions();
                 checkAuthStatus();
             });
