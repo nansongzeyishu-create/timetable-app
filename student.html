@@ -639,10 +639,10 @@
         // 曜日（0=日, 1=月 ... 6=土）と時限（1〜7）ごとの初期時間割データ
         let masterTimetable = {
             1: { 1: "国語", 2: "数学", 3: "英語", 4: "理科", 5: "社会", 6: "体育" },
-            2: { 1: "数A", 2: "英単", 3: "物理", 4: "化学", 5: "歴史", 6: "保健", 7: "総合" },
+            2: { 1: "数A", 2: "英単", 3: "物理", 4: "化学", 5: "歴史", 6: "保健" },
             3: { 1: "音楽", 2: "美術", 3: "国語", 4: "数学", 5: "英語", 6: "クラブ" },
-            4: { 1: "地理", 2: "体育", 3: "数学", 4: "理科", 5: "英語", 6: "道徳" },
-            5: { 1: "英語", 2: "国語", 3: "情報", 4: "数学", 5: "理科", 6: "LHR" },
+            4: { 1: "地理", 2: "体育", 3: "数学", 4: "理科", 5: "英語" },
+            5: { 1: "英語", 2: "国語", 3: "数学", 4: "理科", 5: "社会", 6: "LHR" },
             6: {}, 0: {}
         };
         let dayEvents = {};   // 各日付ごとの予定（時間割変更・持ち物・課題・イベント・テスト科目）を入れる箱
@@ -667,13 +667,23 @@
         }
 
         // 今週の時間割にある科目を annualSubjects にすべて含めた状態に同期する関数
-        function syncTimetableSubjectsIntoAnnualSubjects(persist = false) {
+        // previousTimetableSubjects を渡すと、以前の今週の時間割にあったが今の今週の時間割にはない科目を取り除く
+        function syncTimetableSubjectsIntoAnnualSubjects(persist = false, previousTimetableSubjects = null) {
             const timetableSubs = collectTimetableSubjects();
+
+            if (Array.isArray(previousTimetableSubjects)) {
+                const removedFromTimetable = previousTimetableSubjects.filter(subj => !timetableSubs.includes(subj));
+                if (removedFromTimetable.length > 0) {
+                    annualSubjects = annualSubjects.filter(subj => !removedFromTimetable.includes(subj));
+                }
+            }
+
             timetableSubs.forEach(subj => {
                 if (!annualSubjects.includes(subj)) {
                     annualSubjects.push(subj);
                 }
             });
+
             if (persist) {
                 saveSubjectsData();
             }
@@ -836,6 +846,7 @@
                 `${dayNames[activeBulkDayOfWeek]}曜日の時間割を保存`,
                 "入力した1〜7限の時間割で更新しますか？",
                 () => {
+                    const prevSubjects = collectTimetableSubjects();
                     const newDayMap = {};
                     document.querySelectorAll('.bulk-period-input').forEach(inp => {
                         const p = parseInt(inp.getAttribute('data-period'), 10);
@@ -846,7 +857,7 @@
                     });
                     masterTimetable[activeBulkDayOfWeek] = newDayMap;
                     saveMasterData();
-                    syncTimetableSubjectsIntoAnnualSubjects(true);
+                    syncTimetableSubjectsIntoAnnualSubjects(true, prevSubjects);
                     refreshAllSubjectOptions();
                     renderWeeklyTimetable();
                     closeDayBulkEditModal();
@@ -862,8 +873,11 @@
                 `${dayNames[activeBulkDayOfWeek]}曜日の時間割をすべて消去`,
                 "1限〜7限の授業をすべて空にしますか？",
                 () => {
+                    const prevSubjects = collectTimetableSubjects();
                     masterTimetable[activeBulkDayOfWeek] = {};
                     saveMasterData();
+                    syncTimetableSubjectsIntoAnnualSubjects(true, prevSubjects);
+                    refreshAllSubjectOptions();
                     renderWeeklyTimetable();
                     closeDayBulkEditModal();
                 }
@@ -1001,7 +1015,8 @@
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             loadStoredData();
-            syncTimetableSubjectsIntoAnnualSubjects(true);
+            annualSubjects = collectTimetableSubjects();
+            saveSubjectsData();
             refreshAllSubjectOptions();
             cleanupPastCalendarEvents();
             checkAuthStatus();
@@ -1822,12 +1837,15 @@
         function requestClearPeriod() {
             const period = parseInt(document.getElementById('changePeriodSelect').value);
             openConfirmModal("この時間を消しますか？", `${period}限目の授業を消去します。`, () => {
+                const prevSubjects = collectTimetableSubjects();
                 const dateObj = new Date(activeDayKey + 'T00:00:00');
                 const dayOfWeek = dateObj.getDay();
                 if (masterTimetable[dayOfWeek]) {
                     delete masterTimetable[dayOfWeek][period];
                 }
                 saveMasterData();
+                syncTimetableSubjectsIntoAnnualSubjects(true, prevSubjects);
+                refreshAllSubjectOptions();
                 renderWeeklyTimetable();
                 closeDayDetailModal();
             });
@@ -1932,6 +1950,7 @@
         function requestAddDayEvent() {
             if (activeModalMode === 'home') {
                 openConfirmModal("時間割を変更しますか？", "今週の時間割の科目を更新します。", () => {
+                    const prevSubjects = collectTimetableSubjects();
                     const period = parseInt(document.getElementById('changePeriodSelect').value);
                     const subject = document.getElementById('changeSubjectInput').value.trim();
                     const dateObj = new Date(activeDayKey + 'T00:00:00');
@@ -1946,7 +1965,7 @@
 
                     document.getElementById('changeSubjectInput').value = '';
                     saveMasterData();
-                    syncTimetableSubjectsIntoAnnualSubjects(true);
+                    syncTimetableSubjectsIntoAnnualSubjects(true, prevSubjects);
                     refreshAllSubjectOptions();
                     renderWeeklyTimetable();
                     closeDayDetailModal();
