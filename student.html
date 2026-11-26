@@ -397,7 +397,7 @@
                         <span>テスト期間の設定</span>
                     </div>
                     <p class="pl-6 text-slate-600">
-                        カレンダータブ上部の「テスト期間」から開始日と終了日を選ぶと、土日と祝日を除いた平日ごとに1〜4限のテスト科目をまとめて登録できます。テスト期間中の日をタップすると、その日のテスト科目と提出物をまとめて確認できます。
+                        カレンダータブ上部の「テスト期間」から開始日と終了日を選ぶと、土日と祝日を除いた平日ごとに1〜4限のテスト科目をまとめて登録できます。テスト期間中の日をタップすると、その日のテスト科目を大きく確認できます。
                     </p>
                 </div>
 
@@ -522,10 +522,10 @@
             </div>
             
             <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
-                <!-- テスト期間中の日を開いた時に表示される「その日のテスト科目＆提出物まとめ」と操作ボタン -->
+                <!-- テスト期間中の日を開いた時に表示される「この日のテスト科目」大型カードと操作ボタン -->
                 <div id="testPeriodActionsContainer" class="hidden"></div>
 
-                <!-- その日に登録されている予定を大きめに見やすく表示するエリア -->
+                <!-- その日に登録されている予定を大きめに見やすく表示するエリア（テスト期間中は非表示） -->
                 <div id="dayEventsListSection" class="bg-slate-50/80 border border-slate-200 rounded-2xl p-3">
                     <h4 id="dayEventsListHeader" class="text-xs font-extrabold text-slate-700 tracking-wider mb-2 flex items-center gap-1.5">
                         <i data-lucide="calendar-check" class="w-4 h-4 text-indigo-600"></i>
@@ -1545,25 +1545,44 @@
         }
 
         // 入力・選択された1〜4限のテスト科目を保存する関数
+        // 科目が入った最も遅い限（例: 2限まで入力したら2）より後ろの限（3限・4限）は自動で消去する
         function saveTestSubjects() {
-            const inputs = document.querySelectorAll('.test-subject-input');
+            const inputs = Array.from(document.querySelectorAll('.test-subject-input'));
+            const byDate = {};
+
             inputs.forEach(input => {
                 const dateKey = input.getAttribute('data-date');
-                const period = input.getAttribute('data-period');
+                const period = parseInt(input.getAttribute('data-period'), 10);
                 const subject = input.value.trim();
+                if (!byDate[dateKey]) byDate[dateKey] = {};
+                byDate[dateKey][period] = subject;
+            });
+
+            Object.keys(byDate).forEach(dateKey => {
+                const periodMap = byDate[dateKey];
+                let maxEnteredPeriod = 0;
+                [1, 2, 3, 4].forEach(p => {
+                    if (periodMap[p] && periodMap[p].trim() !== '') {
+                        maxEnteredPeriod = p;
+                    }
+                });
 
                 if (!dayEvents[dateKey]) dayEvents[dateKey] = [];
+                dayEvents[dateKey] = dayEvents[dateKey].filter(e => !(e.type === 'change' && e.isTest));
 
-                dayEvents[dateKey] = dayEvents[dateKey].filter(e => !(e.type === 'change' && e.isTest && String(e.period) === String(period)));
-
-                if (subject) {
-                    dayEvents[dateKey].push({
-                        id: Date.now() + Math.random(),
-                        type: 'change',
-                        period: period,
-                        subject: subject,
-                        isTest: true
-                    });
+                if (maxEnteredPeriod > 0) {
+                    for (let p = 1; p <= maxEnteredPeriod; p++) {
+                        const subj = (periodMap[p] || '').trim();
+                        if (subj) {
+                            dayEvents[dateKey].push({
+                                id: Date.now() + Math.random(),
+                                type: 'change',
+                                period: String(p),
+                                subject: subj,
+                                isTest: true
+                            });
+                        }
+                    }
                 }
 
                 if (dayEvents[dateKey].length === 0) {
@@ -1577,28 +1596,29 @@
             closeTestPeriodModal();
         }
 
-        // テスト期間中の日をタップした時、その日の「1〜4限テスト科目」と「提出物（課題・持ち物）」をまとめて表示するHTMLを作る関数
+        // テスト期間中の日をタップした時、「この日のテスト科目」を大きく表示するHTMLを作る関数
         function buildTestDayOverviewHtml(dateKey, range, matchedRangeIndex) {
             const eventsForDay = dayEvents[dateKey] || [];
+            const activeTestItems = [1, 2, 3, 4]
+                .map(p => {
+                    const found = eventsForDay.find(e => e.type === 'change' && e.isTest && parseInt(e.period, 10) === p);
+                    const subj = found && found.subject ? found.subject.trim() : '';
+                    return subj ? { period: p, subject: subj } : null;
+                })
+                .filter(Boolean);
 
-            const testSlotsHtml = [1, 2, 3, 4].map(p => {
-                const found = eventsForDay.find(e => e.type === 'change' && e.isTest && parseInt(e.period, 10) === p);
-                const subj = found && found.subject ? found.subject.trim() : '';
-                if (subj) {
-                    return `
-                        <div class="bg-white border border-amber-200 rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2">
-                            <span class="text-[10px] font-extrabold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded shrink-0">${p}限</span>
-                            <span class="text-xs font-extrabold text-slate-800 truncate text-right">${escapeHtml(subj)}</span>
-                        </div>
-                    `;
-                }
-                return `
-                    <div class="bg-white/60 border border-amber-100 rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2">
-                        <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded shrink-0">${p}限</span>
-                        <span class="text-[11px] text-slate-400 italic">なし</span>
+            const testSlotsHtml = activeTestItems.length > 0
+                ? activeTestItems.map(item => `
+                    <div class="bg-white border-2 border-amber-300 rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-3 shadow-sm">
+                        <span class="text-xs font-black text-amber-800 bg-amber-100 px-2.5 py-1 rounded-xl shrink-0">${item.period}限</span>
+                        <span class="text-base font-black text-slate-900 truncate text-right">${escapeHtml(item.subject)}</span>
+                    </div>
+                `).join('')
+                : `
+                    <div class="bg-white/80 border border-amber-200 rounded-2xl px-3.5 py-3 text-center">
+                        <span class="text-xs font-bold text-slate-400">この日のテスト科目はまだ登録されていません</span>
                     </div>
                 `;
-            }).join('');
 
             const assignments = eventsForDay.filter(e => e.type === 'assignment');
             const belongings = eventsForDay.filter(e => e.type === 'belonging');
@@ -1628,25 +1648,23 @@
             }
 
             return `
-                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3 space-y-3 mb-3">
-                    <div class="flex justify-between items-start gap-2 border-b border-amber-200/80 pb-2">
-                        <div>
-                            <span class="text-[10px] font-extrabold text-amber-700 block">テスト期間中</span>
-                            <span class="text-xs font-bold text-amber-950">${range.startDate.replace(/-/g, '/')} 〜 ${range.endDate.replace(/-/g, '/')}</span>
-                        </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 space-y-3 mb-2">
+                    <div class="flex justify-between items-center gap-2 border-b border-amber-200/80 pb-2">
+                        <span class="text-[10px] font-extrabold text-amber-800 bg-amber-200/70 px-2 py-0.5 rounded-full">テスト期間中</span>
+                        <span class="text-[11px] font-bold text-amber-900">${range.startDate.replace(/-/g, '/')} 〜 ${range.endDate.replace(/-/g, '/')}</span>
                     </div>
 
-                    <div class="space-y-1.5">
-                        <div class="text-[11px] font-extrabold text-amber-900 flex items-center gap-1">
-                            <i data-lucide="book-open-check" class="w-3.5 h-3.5 text-amber-600"></i>
-                            <span>この日のテスト科目 (1〜4限)</span>
+                    <div class="space-y-2">
+                        <div class="text-sm font-black text-amber-950 flex items-center gap-1.5">
+                            <i data-lucide="book-open-check" class="w-4 h-4 text-amber-600"></i>
+                            <span>この日のテスト科目</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-1.5">
+                        <div class="space-y-2">
                             ${testSlotsHtml}
                         </div>
                     </div>
 
-                    <div class="space-y-1.5 pt-1 border-t border-amber-200/70">
+                    <div class="space-y-1.5 pt-2 border-t border-amber-200/70">
                         <div class="text-[11px] font-extrabold text-emerald-900 flex items-center gap-1">
                             <i data-lucide="package-check" class="w-3.5 h-3.5 text-emerald-600"></i>
                             <span>この日の提出物・持ち物</span>
@@ -1679,9 +1697,10 @@
             document.getElementById('dayDetailModalSubtitle').innerText = holidayName ? `祝日: ${holidayName}` : '';
 
             const matchedRangeIndex = testRanges.findIndex(range => dateKey >= range.startDate && dateKey <= range.endDate);
+            const isTestDay = matchedRangeIndex !== -1 && isDateInTestRange(dateKey);
             const actionsContainer = document.getElementById('testPeriodActionsContainer');
             
-            if (matchedRangeIndex !== -1 && isDateInTestRange(dateKey)) {
+            if (isTestDay) {
                 const range = testRanges[matchedRangeIndex];
                 actionsContainer.innerHTML = buildTestDayOverviewHtml(dateKey, range, matchedRangeIndex);
                 actionsContainer.classList.remove('hidden');
@@ -1710,6 +1729,14 @@
                 formHeader.innerText = `${defaultPeriod}限目の時間割を変更・消去`;
                 primaryBtn.innerText = '時間割を変更する';
                 clearBtn.classList.remove('hidden');
+            } else if (isTestDay) {
+                // テスト期間中の日をタップした時は「登録されている予定」を消して「この日のテスト科目」を大きく表示
+                eventsListSection.classList.add('hidden');
+                addFormSection.classList.add('border-t', 'pt-3');
+                selectWrapper.classList.remove('hidden');
+                formHeader.innerText = '予定・提出物の追加';
+                primaryBtn.innerText = '追加する';
+                clearBtn.classList.add('hidden');
             } else {
                 eventsListSection.classList.remove('hidden');
                 addFormSection.classList.add('border-t', 'pt-3');
@@ -1884,7 +1911,15 @@
                 }
                 if (dayEvents[activeDayKey].length === 0) delete dayEvents[activeDayKey];
                 saveEventsData();
-                renderDayEventsList();
+
+                const matchedRangeIndex = testRanges.findIndex(range => activeDayKey >= range.startDate && activeDayKey <= range.endDate);
+                if (matchedRangeIndex !== -1 && isDateInTestRange(activeDayKey)) {
+                    document.getElementById('testPeriodActionsContainer').innerHTML = buildTestDayOverviewHtml(activeDayKey, testRanges[matchedRangeIndex], matchedRangeIndex);
+                    lucide.createIcons();
+                } else {
+                    renderDayEventsList();
+                }
+
                 renderCalendar();
                 renderWeeklyTimetable();
                 renderAssignmentsTab();
