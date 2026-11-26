@@ -304,7 +304,7 @@
 
             <div class="p-4 overflow-y-auto space-y-4 flex-1 text-xs">
                 <p class="text-slate-600 leading-relaxed">
-                    1年間に履修する科目を登録してください。今週の時間割に入っている科目は自動で入っています。追加や削除も自由にできます。
+                    1年間に履修する科目を登録してください。追加・削除した科目はブラウザに保存されます。
                 </p>
 
                 <!-- 新しい科目を追加する入力フォーム -->
@@ -357,7 +357,7 @@
                         <span>「科目登録」で履修科目を管理</span>
                     </div>
                     <p class="pl-6 text-slate-600">
-                        今週の時間割に入っている科目は自動で「科目登録」に入っています。新しい科目の追加や不要な科目の削除もいつでもできます。
+                        今週の時間割に入っている科目は自動で「科目登録」に入っています。新しい科目の追加や不要な科目の削除もいつでもでき、内容は保存されます。
                     </p>
                 </div>
 
@@ -639,7 +639,7 @@
         // 曜日（0=日, 1=月 ... 6=土）と時限（1〜7）ごとの初期時間割データ
         let masterTimetable = {
             1: { 1: "国語", 2: "数学", 3: "英語", 4: "理科", 5: "社会", 6: "体育" },
-            2: { 1: "数A", 2: "英単", 3: "物理", 4: "化学", 5: "歴史", 6: "保健" },
+            2: { 1: "数A", 2: "英単", 3: "物理", 4: "化学", 5: "歴史" },
             3: { 1: "音楽", 2: "美術", 3: "国語", 4: "数学", 5: "英語", 6: "クラブ" },
             4: { 1: "地理", 2: "体育", 3: "数学", 4: "理科", 5: "英語" },
             5: { 1: "英語", 2: "国語", 3: "数学", 4: "理科", 5: "社会", 6: "LHR" },
@@ -648,7 +648,7 @@
         let dayEvents = {};   // 各日付ごとの予定（時間割変更・持ち物・課題・イベント・テスト科目）を入れる箱
         let testRanges = [];  // テスト期間の「開始日」と「終了日」のまとまりを入れる配列
 
-        // 1年間に履修する科目のリスト（今週の時間割に入っている科目をすべて入れる）
+        // 1年間に履修する科目のリスト（今週の時間割に入っている科目をすべて入れ、追加・削除も保存される）
         let annualSubjects = [];
 
         // 現在の「今週の時間割（masterTimetable）」に入っているすべての科目を重複なしで抽出する関数
@@ -664,6 +664,23 @@
                 }
             });
             return found;
+        }
+
+        // 科目リストを重複・空文字なしに整形して localStorage に保存する関数
+        function saveSubjectsData() {
+            const cleaned = [];
+            annualSubjects.forEach(item => {
+                if (typeof item === 'string') {
+                    const trimmed = item.trim();
+                    if (trimmed && !cleaned.includes(trimmed)) {
+                        cleaned.push(trimmed);
+                    }
+                }
+            });
+            annualSubjects = cleaned;
+            try {
+                localStorage.setItem(STORAGE_KEY_SUBJECTS, JSON.stringify(annualSubjects));
+            } catch (e) {}
         }
 
         // 今週の時間割にある科目を annualSubjects にすべて含めた状態に同期する関数
@@ -689,11 +706,6 @@
             }
         }
 
-        // 科目リストを localStorage に保存する関数
-        function saveSubjectsData() {
-            localStorage.setItem(STORAGE_KEY_SUBJECTS, JSON.stringify(annualSubjects));
-        }
-
         // 「科目登録」モーダルを開く関数
         function openSubjectManagerModal() {
             syncTimetableSubjectsIntoAnnualSubjects(true);
@@ -706,6 +718,7 @@
 
         // 「科目登録」モーダルを閉じる関数
         function closeSubjectManagerModal() {
+            saveSubjectsData();
             document.getElementById('subjectManagerModal').classList.add('opacity-0', 'pointer-events-none');
             if (!document.getElementById('dayDetailModal').classList.contains('pointer-events-none') ||
                 !document.getElementById('dayBulkEditModal').classList.contains('pointer-events-none')) {
@@ -716,7 +729,7 @@
             refreshAllSubjectOptions(); // 閉じた瞬間にすべての教科枠の選択肢を更新
         }
 
-        // 新しい科目を1年間の履修科目リストに追加する関数
+        // 新しい科目を1年間の履修科目リストに追加して保存する関数
         function handleAddSubject(e) {
             e.preventDefault();
             const input = document.getElementById('newSubjectInput');
@@ -732,7 +745,7 @@
             refreshAllSubjectOptions();
         }
 
-        // 登録済みの科目を削除する関数
+        // 登録済みの科目を削除して保存する関数
         function removeSubject(subj) {
             annualSubjects = annualSubjects.filter(item => item !== subj);
             saveSubjectsData();
@@ -740,7 +753,7 @@
             refreshAllSubjectOptions();
         }
 
-        // 「科目登録」モーダル内の登録済み科目一覧を描画する関数
+        // 「科目登録」モーダル内の登録済み科目一覧を描画する関数（data属性で安全に削除できるようにする）
         function renderRegisteredSubjectsList() {
             const listEl = document.getElementById('registeredSubjectsList');
             const countEl = document.getElementById('registeredSubjectsCount');
@@ -754,11 +767,21 @@
             listEl.innerHTML = annualSubjects.map(subj => `
                 <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-900 border border-emerald-200 px-2.5 py-1 rounded-xl text-xs font-bold">
                     <span>${escapeHtml(subj)}</span>
-                    <button type="button" onclick="removeSubject('${escapeHtml(subj).replace(/'/g, "\\'")}')" class="text-emerald-600 hover:text-rose-600 ml-0.5" title="削除">
+                    <button type="button" data-remove-subject="${escapeHtml(subj)}" class="remove-subject-btn text-emerald-600 hover:text-rose-600 ml-0.5" title="削除">
                         <i data-lucide="x" class="w-3.5 h-3.5"></i>
                     </button>
                 </span>
             `).join('');
+
+            listEl.querySelectorAll('.remove-subject-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetSubj = btn.getAttribute('data-remove-subject');
+                    if (targetSubj !== null) {
+                        removeSubject(targetSubj);
+                    }
+                });
+            });
+
             lucide.createIcons();
         }
 
@@ -1015,18 +1038,34 @@
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             loadStoredData();
-            annualSubjects = collectTimetableSubjects();
-            saveSubjectsData();
+            syncTimetableSubjectsIntoAnnualSubjects(true);
             refreshAllSubjectOptions();
             cleanupPastCalendarEvents();
             checkAuthStatus();
             renderHeaderDate();
         });
 
+        // 画面が閉じられたりバックグラウンドへ移ったりする際にも科目データを確実に保存
+        window.addEventListener('pagehide', () => {
+            saveSubjectsData();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                saveSubjectsData();
+            }
+        });
+
         // localStorage から保存済みのデータを読み込む関数
         function loadStoredData() {
             const storedMaster = localStorage.getItem(STORAGE_KEY_MASTER);
-            if (storedMaster) try { masterTimetable = JSON.parse(storedMaster); } catch(e){}
+            if (storedMaster) {
+                try {
+                    const parsedMaster = JSON.parse(storedMaster);
+                    if (parsedMaster && typeof parsedMaster === 'object') {
+                        masterTimetable = parsedMaster;
+                    }
+                } catch(e){}
+            }
             const storedEvents = localStorage.getItem(STORAGE_KEY_EVENTS);
             if (storedEvents) try { dayEvents = JSON.parse(storedEvents); } catch(e){}
             const storedRanges = localStorage.getItem(STORAGE_KEY_TEST_RANGES);
@@ -1035,7 +1074,9 @@
             if (storedSubjects) {
                 try {
                     const parsed = JSON.parse(storedSubjects);
-                    if (Array.isArray(parsed)) annualSubjects = parsed;
+                    if (Array.isArray(parsed)) {
+                        annualSubjects = parsed.filter(s => typeof s === 'string' && s.trim() !== '').map(s => s.trim());
+                    }
                 } catch(e){}
             }
         }
@@ -1070,9 +1111,10 @@
             }
         }
 
-        // ログアウトの確認ダイアログを出す関数
+        // ログアウトの確認ダイアログを出す関数（科目登録データは保持）
         function requestLogout() {
             openConfirmModal("ログアウトしますか？", "データへのアクセスが停止します。", () => {
+                saveSubjectsData();
                 localStorage.removeItem(STORAGE_KEY_USER);
                 currentUser = null;
                 checkAuthStatus();
@@ -1167,7 +1209,6 @@
                         baseStyle += "bg-indigo-50/30 border-x border-indigo-200 font-semibold ";
                     }
 
-                    // 平日の祝日の場合は、科目や変更などの文字をそのまま残したまま枠の色を赤系にする
                     const holidayRedFrame = isWeekdayHoliday ? "bg-rose-50/70 border border-rose-300 rounded " : "";
 
                     if (inTest) {
@@ -1810,7 +1851,6 @@
                 primaryBtn.innerText = '時間割を変更する';
                 clearBtn.classList.remove('hidden');
             } else if (isTestDay) {
-                // テスト期間中の日をタップした時は「登録されている予定」を消して「この日のテスト科目」を大きく表示
                 eventsListSection.classList.add('hidden');
                 addFormSection.classList.add('border-t', 'pt-3');
                 selectWrapper.classList.remove('hidden');
